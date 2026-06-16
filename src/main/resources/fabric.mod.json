@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "steamed",
+	"version": "0.1.0",
+	"name": "Steamed",
+	"description": "Provides peer-to-peer networking via Steamworks™",
+	"authors": [
+		"Kai Shiraishi"
+	],
+	"contact": {
+		"sources": "https://git.gay/kai/steamed",
+		"email": "contact@kkaii.xyz",
+		"issues": "https://git.gay/kai/steamed/issues"
+	},
+	"license": "GNU GPL v3",
+	"icon": "assets/steamed/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "gay.git.kai.steamed.Steamed",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"steamed.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"update_checker": false
+		}
+	}
+}
