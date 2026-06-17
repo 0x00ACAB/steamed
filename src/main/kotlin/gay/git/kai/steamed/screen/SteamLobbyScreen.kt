@@ -161,7 +161,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
-        if (event.key() === KEY_F5) {
+        if (event.key() == KEY_F5) {
             this.screenExecutor.execute({ this.minecraft.setScreen(SteamLobbyScreen(this.lastScreen)) })
         }
 
