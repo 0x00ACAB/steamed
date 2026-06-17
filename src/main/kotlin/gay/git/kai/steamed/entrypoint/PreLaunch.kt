@@ -32,7 +32,7 @@ class PreLaunch : PreLaunchEntrypoint {
         val loader: SteamLibraryLoader = SteamLibraryLoaderLwjgl3()
         if (!SteamAPI.loadLibraries(loader)) LOGGER!!.error("Failed to load steam libraries")
 
-        var result: InitResult? = null
+        var result: InitResult
         try {
             SteamAPI.init()
             result = SteamAPI.initEx()
@@ -297,7 +297,7 @@ class PreLaunch : PreLaunchEntrypoint {
                 )
 
                 Steamed.StartP2PGame()
-                instance?.screen?.keyPressed(KeyEvent(KEY_F5, 0, 0))
+                instance.screen?.keyPressed(KeyEvent(KEY_F5, 0, 0))
             }
 
             override fun onFavoritesListAccountsUpdated(result: SteamResult?) {

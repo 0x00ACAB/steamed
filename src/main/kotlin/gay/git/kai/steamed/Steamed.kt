@@ -59,7 +59,6 @@ class Steamed : ModInitializer, ClientModInitializer {
 
         @JvmField
         var userStats: SteamUserStats? = null
-        var apps: SteamApps? = null
 
         @JvmField
         var friends: SteamFriends? = null
