@@ -29,6 +29,9 @@ dependencies {
 
 	implementation("com.code-disaster.steamworks4j:steamworks4j:1.10.0")
 	implementation("com.code-disaster.steamworks4j:steamworks4j-lwjgl3:1.10.0")
+
+	implementation("org.bitlet:weupnp:0.1.2")
+	include("org.bitlet:weupnp:0.1.2")
 }
 
 tasks.processResources {

@@ -21,6 +21,18 @@
 				"value": "gay.git.kai.steamed.Steamed",
 				"adapter": "kotlin"
 			}
+		],
+		"preLaunch": [
+			{
+				"value": "gay.git.kai.steamed.entrypoint.PreLaunch",
+				"adapter": "kotlin"
+			}
+		],
+		"client": [
+			{
+				"value": "gay.git.kai.steamed.Steamed",
+				"adapter": "kotlin"
+			}
 		]
 	},
 	"mixins": [
