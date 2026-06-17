@@ -1,10 +1,10 @@
+import org.gradle.api.internal.provider.ValueSupplier.ValueProducer.task
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
 	id("net.fabricmc.fabric-loom")
 	`maven-publish`
 	id("org.jetbrains.kotlin.jvm") version "2.4.0"
-//	id("com.gradleup.shadow") version "9.4.2"
 }
 
 version = providers.gradleProperty("mod_version").get()
