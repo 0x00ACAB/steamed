@@ -1,49 +1,137 @@
+@file:JvmName("Steamed")
+@file:JvmMultifileClass
+
 package gay.git.kai.steamed
 
-import com.codedisaster.steamworks.SteamAPI
-import com.codedisaster.steamworks.SteamLibraryLoaderLwjgl3
+import com.codedisaster.steamworks.*
+import gay.git.kai.steamed.lib.IPv4
+import gay.git.kai.steamed.lib.Option
+import gay.git.kai.steamed.net.UPnPublisher
 import gay.git.kai.steamed.tasks.SteamCallbackTask
+import kotlinx.io.IOException
+import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
+import net.minecraft.client.server.IntegratedServer
+import net.minecraft.network.chat.Component
+import net.minecraft.server.commands.PublishCommand
+import net.minecraft.util.HttpUtil
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.util.Timer
-
-object Steamed : ModInitializer {
-	private val logger = LoggerFactory.getLogger("steamed")
-	private val timer = Timer();
-
-	private val steamCallbackTask = SteamCallbackTask()
-
-	override fun onInitialize() {
-		if (!createAppid()) return;
-
-		if (!SteamAPI.loadLibraries( SteamLibraryLoaderLwjgl3() )) {
-			logger.error("Error whilst initialising steam api (E01): could not load LWJGL3 libraries")
-			return
-		}
-
-		if (!SteamAPI.init()) {
-			logger.error("Error whilst initialising steam api (E02): could not connect to the steam client, is it running?")
-			return
-		}
+import org.xml.sax.SAXException
+import java.util.*
+import javax.xml.parsers.ParserConfigurationException
+import kotlin.concurrent.Volatile
 
 
+class Steamed : ModInitializer, ClientModInitializer {
+    private val logger = LoggerFactory.getLogger("steamed")
+    private val timer = Timer()
 
-		logger.info("Starting steam poller task")
-		timer.schedule(steamCallbackTask, 15 / 1000)
-	}
+    override fun onInitialize() {
+//		if (!createAppid()) return;
+//
+//		if (!SteamAPI.loadLibraries( SteamLibraryLoaderLwjgl3() )) {
+//			logger.error("Error whilst initialising steam api (E01): could not load LWJGL3 libraries")
+//			return
+//		}
+//
+//		if (!SteamAPI.init()) {
+//			logger.error("Error whilst initialising steam api (E02): could not connect to the steam client, is it running?")
+//			return
+//		}
+//
+//
+//
+//		logger.info("Starting steam poller task")
+    }
 
-	 fun createAppid(): Boolean {
-		try {
-			File(
-				Minecraft.getInstance().gameDirectory.toString() + "/steam_appid.txt"
-			).writeText("480")
-			return true;
-		} catch (e: NullPointerException) {
-			logger.error("Error whilst initialising steam api (E01): could not create steam_appid.txt in the game directory")
-			logger.error(e.message)
-			return false;
-		}
-	}
+    override fun onInitializeClient() {
+        logger.info("init steamworks client")
+        timer.schedule(SteamCallbackTask(), 0, 70L)
+    }
+
+    companion object {
+        val LOGGER: Logger = LoggerFactory.getLogger("steamp2p")
+
+        @JvmField
+        var user: SteamUser? = null
+
+        @JvmField
+        var userStats: SteamUserStats? = null
+        var apps: SteamApps? = null
+
+        @JvmField
+        var friends: SteamFriends? = null
+
+        @JvmField
+        var matchmaking: SteamMatchmaking? = null
+
+        @Volatile
+        var lobbyId: Option<SteamID?> = Option<SteamID?>()
+        var currentLeaderboard: SteamLeaderboardHandle? = null
+
+        @Volatile
+        var lobbies: MutableMap<Long?, SteamID?> = HashMap<Long?, SteamID?>()
+        var timer: Timer? = null
+
+        fun StartP2PGame() {
+            val mc: Minecraft = Minecraft.getInstance()
+            if (!lobbyId.isSome()) {
+                LOGGER.error(
+                    "Unable to start local game server, (E02: no lobby created)"
+                )
+                return
+            }
+
+            if (!mc.allowsMultiplayer() || !mc.hasSingleplayerServer()) {
+                LOGGER.error(
+                    "Unable to start local game server, (E01: multiplayer not allowed)"
+                )
+                return
+            }
+
+
+            val server: IntegratedServer = mc.singleplayerServer!!
+            val port = HttpUtil.getAvailablePort()
+            val message: Component?
+
+            server.getWorldData().isAllowCommands
+            if (server.publishServer(
+                    server.defaultGameType,
+                    true, port
+                )
+            ) {
+                message = PublishCommand.getSuccessMessage(port)
+            } else {
+                message = Component.translatable("commands.publish.failed")
+            }
+
+
+            val ip: String
+            try {
+                ip = UPnPublisher().publish(port).unwrapOr("0.0.0.0")!!
+            } catch (e: IOException) {
+                LOGGER.error(e.localizedMessage)
+                return
+            } catch (e: ParserConfigurationException) {
+                LOGGER.error(e.localizedMessage)
+                return
+            } catch (e: SAXException) {
+                LOGGER.error(e.localizedMessage)
+                return
+            }
+
+            matchmaking?.setLobbyGameServer(
+                lobbyId.unwrap(),
+                IPv4.into(ip),
+                (port.toShort()),
+                SteamID()
+            )
+            if (mc.screen != null) mc.screen!!.onClose()
+            mc.gui.chat.addClientSystemMessage(message)
+            //todo(kai): https://partner.steamgames.com/doc/api/ISteamNetworking#SendP2PPacket
+            //todo(kai): whitelist steam access tokens (possibly pre-join handshake packet with an auth token + lobby id)
+        }
+    }
 }
