@@ -10,8 +10,8 @@ import gay.git.kai.steamed.Steamed.Companion.matchmaking
 import gay.git.kai.steamed.Steamed.Companion.networking
 import gay.git.kai.steamed.Steamed.Companion.user
 import gay.git.kai.steamed.Steamed.Companion.userStats
-import gay.git.kai.steamed.lib.IPv4
 import gay.git.kai.steamed.net.SteamNetwork
+import gay.git.kai.steamed.net.SteamP2PRelay
 import gay.git.kai.steamed.screen.SteamLobbyScreen
 import gay.git.kai.steamed.tasks.SteamCallbackTask
 import net.fabricmc.loader.api.FabricLoader
@@ -26,10 +26,14 @@ import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.IOException
+import java.net.InetAddress
+import java.net.ServerSocket
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.concurrent.thread
 
 
 class PreLaunch : PreLaunchEntrypoint {
@@ -72,6 +76,7 @@ class PreLaunch : PreLaunchEntrypoint {
         matchmaking = SteamMatchmaking(matchmakingCallback)
 
         networking = SteamNetworking(SteamNetwork())
+        Steamed.p2pRelay = SteamP2PRelay(networking!!)
 
         LOGGER.info("Starting steam poller task")
         Steamed.timer = Timer("steam-callback-poller", true)
@@ -181,17 +186,43 @@ class PreLaunch : PreLaunchEntrypoint {
                 ip: Int,
                 port: Short
             ) {
-                val isOwner = matchmaking?.getLobbyOwner(steamIDLobby) == user?.steamID
-                if (isOwner) return
+                if (steamIDGameServer == null || steamIDGameServer == user?.steamID) return
 
-                val host = IPv4.from(ip)
-                val hostPort = port.toInt() and 0xFFFF
-                LOGGER!!.info("Lobby game created at {}:{}, connecting", host, hostPort)
+                val relay = Steamed.p2pRelay
+                if (relay == null) {
+                    LOGGER!!.error("No P2P relay available, cannot connect to {}", steamIDGameServer.accountID)
+                    return
+                }
+
+                LOGGER!!.info("Lobby game created, host is {}, connecting over Steam P2P", steamIDGameServer.accountID)
+
+                val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
+                val localPort = serverSocket.localPort
+
+                relay.start()
+                try {
+                    val ping = ByteBuffer.allocateDirect(1)
+                    ping.put(0).flip()
+                    networking?.sendP2PPacket(steamIDGameServer, ping, SteamNetworking.P2PSend.Reliable, 0)
+                } catch (e: SteamException) {
+                    LOGGER.error("Failed to open a P2P session with the host", e)
+                }
+
+                thread(name = "steamed-p2p-accept", isDaemon = true) {
+                    try {
+                        val client = serverSocket.accept()
+                        relay.addPeer(steamIDGameServer, client)
+                    } catch (e: IOException) {
+                        LOGGER.error("Failed to accept the local P2P bridge connection", e)
+                    } finally {
+                        serverSocket.close()
+                    }
+                }
 
                 val instance: Minecraft = Minecraft.getInstance()
                 instance.execute {
-                    val address = ServerAddress(host, hostPort)
-                    val serverData = ServerData("Steam lobby", "$host:$hostPort", ServerData.Type.LAN)
+                    val address = ServerAddress("127.0.0.1", localPort)
+                    val serverData = ServerData("Steam lobby", "127.0.0.1:$localPort", ServerData.Type.LAN)
                     val parent = instance.gui.screen() ?: SteamLobbyScreen(null)
                     ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
                 }
