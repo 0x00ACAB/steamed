@@ -31,30 +31,28 @@ Status is based on reading the code, not on running the mod.
 - [x] P2P session request/failure logging (`SteamNetwork`)
 - [x] Update to Minecraft 26.2
 
+### M4: Stabilise
+- [x] `SteamLobbyScreen.tick` no longer calls `lobbyId.unwrap()` outside a lobby
+- [x] Member refresh uses `i - 1` instead of `n - 1`
+- [x] `IPv4.into` uses `Int` shifts instead of `Double` math, no longer overflows for octets >= 128
+- [x] `Steamed.timer` is assigned (as a daemon `Timer`) in `PreLaunch` once init succeeds, and only scheduled there; the old always-on instance timer in `Steamed` is gone, so the poller is gated on successful init
+- [x] `restartAppIfNecessary` runs right after loading libraries and before `initEx()`; the redundant `init()` call is gone; the app now exits when Steam is going to restart it
+- [x] `onLobbyMatchList` no longer overwrites `lobbyId` with search results
+- [x] License mismatch resolved: `fabric.mod.json` now says CC0-1.0, matching `LICENSE` and README
+- [x] README rewritten to describe the mod instead of the Fabric template
+- [x] `println` replaced with the SLF4J logger; unused steamworks4j demo callbacks (favorites list, web API auth ticket, achievements/leaderboards) removed from `PreLaunch`
+
 ## Known issues
 
-- `SteamLobbyScreen.tick` calls `lobbyId.unwrap()` outside a lobby, which throws after about 5 s on the screen
-- Member refresh uses `n - 1` instead of `i - 1`, so every entry is the last member
-- `IPv4.into` overflows for first octets >= 128 (uses `Double` math instead of shifts)
-- `port.toShort()` wraps for ports above 32767 with no unsigned handling on the read side
-- `Steamed.timer` (companion) is never assigned, so the poller in `PreLaunch` never runs. The instance timer starts regardless of init success and is not a daemon
-- `restartAppIfNecessary` runs after init, and both `init()` and `initEx()` are called
-- `onLobbyMatchList` overwrites `lobbyId` with every result
-- License mismatch: `fabric.mod.json` says GPL v3, `LICENSE` and README say CC0
-- README is still the Fabric template
-- Debug `println` calls and unused steamworks4j demo callbacks in `PreLaunch`
+- `port.toShort()` wraps for ports above 32767; there's no read side yet to add unsigned handling to (tracked under M5)
 
 ## Planned
-
-### M4: Stabilise
-- [ ] Fix the issues above
-- [ ] Gate the poller on successful init
-- [ ] Replace `println` with the logger
 
 ### M5: Joining
 - [ ] Handle `onLobbyGameCreated` / read `getLobbyGameServer` on the joiner
 - [ ] Connect to the host from the lobby screen or automatically after joining
 - [ ] Show join failures in the UI
+- [ ] Read the port as unsigned (`port.toShort()` on the host side wraps above 32767)
 
 ### M6: Lobby management
 - [ ] Leave lobby and clear `lobbyId`; close the lobby when the world closes

@@ -7,7 +7,6 @@ import com.codedisaster.steamworks.*
 import gay.git.kai.steamed.lib.IPv4
 import gay.git.kai.steamed.lib.Option
 import gay.git.kai.steamed.net.UPnPublisher
-import gay.git.kai.steamed.tasks.SteamCallbackTask
 import kotlinx.io.IOException
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
@@ -27,29 +26,12 @@ import kotlin.concurrent.Volatile
 
 class Steamed : ModInitializer, ClientModInitializer {
     private val logger = LoggerFactory.getLogger("steamed")
-    private val timer = Timer()
 
     override fun onInitialize() {
-//		if (!createAppid()) return;
-//
-//		if (!SteamAPI.loadLibraries( SteamLibraryLoaderLwjgl3() )) {
-//			logger.error("Error whilst initialising steam api (E01): could not load LWJGL3 libraries")
-//			return
-//		}
-//
-//		if (!SteamAPI.init()) {
-//			logger.error("Error whilst initialising steam api (E02): could not connect to the steam client, is it running?")
-//			return
-//		}
-//
-//
-//
-//		logger.info("Starting steam poller task")
     }
 
     override fun onInitializeClient() {
         logger.info("init steamworks client")
-        timer.schedule(SteamCallbackTask(), 0, 70L)
     }
 
     companion object {
@@ -72,7 +54,6 @@ class Steamed : ModInitializer, ClientModInitializer {
 
         @Volatile
         var lobbyId: Option<SteamID?> = Option()
-        var currentLeaderboard: SteamLeaderboardHandle? = null
 
         @Volatile
         var lobbies: MutableMap<Long?, SteamID?> = HashMap<Long?, SteamID?>()

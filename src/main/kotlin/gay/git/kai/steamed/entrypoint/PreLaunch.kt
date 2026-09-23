@@ -34,9 +34,17 @@ class PreLaunch : PreLaunchEntrypoint {
         val loader: SteamLibraryLoader = SteamLibraryLoaderLwjgl3()
         if (!SteamAPI.loadLibraries(loader)) LOGGER!!.error("Failed to load steam libraries")
 
-        var result: InitResult
         try {
-            SteamAPI.init()
+            if (SteamAPI.restartAppIfNecessary(480)) {
+                LOGGER!!.info("Restarting through Steam, exiting this instance")
+                kotlin.system.exitProcess(0)
+            }
+        } catch (e: SteamException) {
+            throw RuntimeException(e)
+        }
+
+        val result: InitResult
+        try {
             result = SteamAPI.initEx()
         } catch (e: SteamException) {
             throw RuntimeException(e)
@@ -49,12 +57,6 @@ class PreLaunch : PreLaunchEntrypoint {
 
         SteamAPI.printDebugInfo(System.out)
 
-        try {
-            SteamAPI.restartAppIfNecessary(480)
-        } catch (e: SteamException) {
-            throw RuntimeException(e)
-        }
-
         LOGGER!!.info("Registering user callback ...")
         user = SteamUser(userCallback)
 
@@ -64,9 +66,10 @@ class PreLaunch : PreLaunchEntrypoint {
         friends = SteamFriends(SteamFriendsCallbackEx())
         matchmaking = SteamMatchmaking(matchmakingCallback)
 
-        networking = SteamNetworking(SteamNetwork());
+        networking = SteamNetworking(SteamNetwork())
 
         LOGGER.info("Starting steam poller task")
+        Steamed.timer = Timer("steam-callback-poller", true)
         Steamed.timer?.schedule(SteamCallbackTask(), 0, 15)
     }
 
@@ -88,72 +91,12 @@ class PreLaunch : PreLaunchEntrypoint {
         private val LOGGER: Logger? = LoggerFactory.getLogger("SteamP2P#PreLaunch")
 
         @JvmField
-        val userCallback: SteamUserCallback = object : SteamUserCallback {
-            override fun onGetTicketForWebApi(
-                authTicket: SteamAuthTicket?,
-                result: SteamResult,
-                ticketData: ByteArray
-            ) {
-                println(
-                    "auth ticket for web API: " + ticketData.size + " bytes" +
-                            ", result=" + result.toString()
-                )
-            }
-        }
+        val userCallback: SteamUserCallback = object : SteamUserCallback {}
 
         @JvmField
         val userStatsCallback: SteamUserStatsCallback = object : SteamUserStatsCallback {
             override fun onUserStatsReceived(gameId: Long, steamIDUser: SteamID, result: SteamResult) {
-                println(
-                    "User stats received: gameId=" + gameId + ", userId=" + steamIDUser.accountID +
-                            ", result=" + result.toString()
-                )
-
-                val numAchievements: Int = userStats?.numAchievements!!
-                println("Num of achievements: $numAchievements")
-
-                for (i in 0..<numAchievements) {
-                    val name: String? = userStats?.getAchievementName(i)
-                    val achieved: Boolean = userStats?.isAchieved(name, false)!!
-                    println("# " + i + " : name=" + name + ", achieved=" + (if (achieved) "yes" else "no"))
-                }
-            }
-
-            override fun onUserStatsStored(gameId: Long, result: SteamResult) {
-                println(
-                    "User stats stored: gameId=" + gameId +
-                            ", result=" + result.toString()
-                )
-            }
-
-            override fun onUserStatsUnloaded(steamIDUser: SteamID) {
-                println("User stats unloaded: userId=" + steamIDUser.accountID)
-            }
-
-            override fun onUserAchievementStored(
-                gameId: Long, isGroupAchievement: Boolean, achievementName: String?,
-                curProgress: Int, maxProgress: Int
-            ) {
-                println(
-                    "User achievement stored: gameId=" + gameId + ", name=" + achievementName +
-                            ", progress=" + curProgress + "/" + maxProgress
-                )
-            }
-
-            override fun onLeaderboardFindResult(leaderboard: SteamLeaderboardHandle, found: Boolean) {
-                println(
-                    "Leaderboard find result: handle=" + leaderboard.toString() +
-                            ", found=" + (if (found) "yes" else "no")
-                )
-
-                if (found) {
-                    println(
-                        "Leaderboard: name=" + userStats?.getLeaderboardName(leaderboard) +
-                                ", entries=" + userStats?.getLeaderboardEntryCount(leaderboard)
-                    )
-
-                    Steamed.currentLeaderboard = leaderboard
-                }
+                LOGGER!!.info("User stats received: gameId={}, userId={}, result={}", gameId, steamIDUser.accountID, result)
             }
         }
 
@@ -163,24 +106,8 @@ class PreLaunch : PreLaunchEntrypoint {
             private val chatEntry: SteamMatchmaking.ChatEntry = SteamMatchmaking.ChatEntry()
             private val messageCharset: Charset = StandardCharsets.UTF_8
 
-            override fun onFavoritesListChanged(
-                ip: Int,
-                queryPort: Int,
-                connPort: Int,
-                appID: Int,
-                flags: Int,
-                add: Boolean,
-                accountID: Int
-            ) {
-                println("[onFavoritesListChanged]")
-            }
-
             override fun onLobbyInvite(steamIDUser: SteamID, steamIDLobby: SteamID, gameID: Long) {
-                println("Lobby invite received for " + steamIDLobby)
-                println("  - from user: " + steamIDUser.accountID)
-                println("  - for game: " + gameID)
-
-                println("  - auto-joining lobby ...")
+                LOGGER!!.info("Lobby invite received for {} from user {} (game {}), auto-joining", steamIDLobby, steamIDUser.accountID, gameID)
 
                 Steamed.lobbies.put(SteamNativeHandle.getNativeHandle<SteamID?>(steamIDLobby), steamIDLobby)
                 Steamed.lobbyId.some(steamIDLobby)
@@ -193,21 +120,18 @@ class PreLaunch : PreLaunchEntrypoint {
                 blocked: Boolean,
                 response: SteamMatchmaking.ChatRoomEnterResponse?
             ) {
-                println("Lobby entered: " + steamIDLobby)
-                println("  - response: " + response)
+                LOGGER!!.info("Lobby entered: {} (response={})", steamIDLobby, response)
 
                 val numMembers: Int = matchmaking?.getNumLobbyMembers(steamIDLobby)!!
-                println("  - " + numMembers + " members in lobby")
+                LOGGER.info("  - {} members in lobby", numMembers)
                 for (i in 0..<numMembers) {
                     val member: SteamID = matchmaking?.getLobbyMemberByIndex(steamIDLobby, i)!!
-                    println("    - " + i + ": accountID=" + member.accountID)
+                    LOGGER.info("    - {}: accountID={}", i, member.accountID)
                 }
             }
 
             override fun onLobbyDataUpdate(steamIDLobby: SteamID?, steamIDMember: SteamID, success: Boolean) {
-                println("Lobby data update for " + steamIDLobby)
-                println("  - member: " + steamIDMember.accountID)
-                println("  - success: " + success)
+                LOGGER!!.info("Lobby data update for {} (member={}, success={})", steamIDLobby, steamIDMember.accountID, success)
             }
 
             override fun onLobbyChatUpdate(
@@ -216,10 +140,10 @@ class PreLaunch : PreLaunchEntrypoint {
                 steamIDMakingChange: SteamID,
                 stateChange: SteamMatchmaking.ChatMemberStateChange
             ) {
-                println("Lobby chat update for " + steamIDLobby)
-                println("  - user changed: " + steamIDUserChanged.accountID)
-                println("  - made by user: " + steamIDMakingChange.accountID)
-                println("  - state changed: " + stateChange.name)
+                LOGGER!!.info(
+                    "Lobby chat update for {}: user {} changed by {} ({})",
+                    steamIDLobby, steamIDUserChanged.accountID, steamIDMakingChange.accountID, stateChange.name
+                )
             }
 
             override fun onLobbyChatMessage(
@@ -228,46 +152,31 @@ class PreLaunch : PreLaunchEntrypoint {
                 entryType: SteamMatchmaking.ChatEntryType?,
                 chatID: Int
             ) {
-                println("Lobby chat message for " + steamIDLobby)
-                println("  - from user: " + steamIDUser.accountID)
-                println("  - chat entry type: " + entryType)
-                println("  - chat id: #" + chatID)
-
                 try {
                     val size: Int =
                         matchmaking?.getLobbyChatEntry(steamIDLobby, chatID, chatEntry, chatMessage)!!
-                    println("Lobby chat message #" + chatID + " has " + size + " bytes")
 
                     val bytes = ByteArray(size)
                     chatMessage.get(bytes)
 
                     val message = String(bytes, messageCharset)
 
-                    println("  - from user: " + chatEntry.steamIDUser.accountID)
-                    println("  - chat entry type: " + chatEntry.chatEntryType)
-                    println("  - content: \"" + message + "\"")
+                    LOGGER!!.info(
+                        "Lobby chat message #{} for {} from {} ({}): \"{}\"",
+                        chatID, steamIDLobby, chatEntry.steamIDUser.accountID, chatEntry.chatEntryType, message
+                    )
                 } catch (e: SteamException) {
-                    e.printStackTrace()
+                    LOGGER!!.error("Failed to read lobby chat message #{}", chatID, e)
                 }
             }
 
-            override fun onLobbyGameCreated(
-                steamIDLobby: SteamID?,
-                steamIDGameServer: SteamID?,
-                ip: Int,
-                port: Short
-            ) {
-                println("[onLobbyGameCreated]")
-            }
-
             override fun onLobbyMatchList(lobbiesMatching: Int) {
-                println("Found $lobbiesMatching matching lobbies.")
+                LOGGER!!.info("Found {} matching lobbies.", lobbiesMatching)
 
                 Steamed.lobbies.clear()
                 for (i in 0..<lobbiesMatching) {
                     val lobby: SteamID = matchmaking?.getLobbyByIndex(i)!!
                     Steamed.lobbies[SteamNativeHandle.getNativeHandle<SteamID?>(lobby)] = lobby
-                    Steamed.lobbyId.some(lobby)
                 }
             }
 
@@ -276,14 +185,14 @@ class PreLaunch : PreLaunchEntrypoint {
                 steamIDAdmin: SteamID,
                 kickedDueToDisconnect: Boolean
             ) {
-                println("Kicked from lobby: $steamIDLobby")
-                println("  - by user (admin): " + steamIDAdmin.accountID)
-                println("  - kicked due to disconnect: " + (if (kickedDueToDisconnect) "yes" else "no"))
+                LOGGER!!.info(
+                    "Kicked from lobby {} by admin {} (due to disconnect: {})",
+                    steamIDLobby, steamIDAdmin.accountID, kickedDueToDisconnect
+                )
             }
 
             override fun onLobbyCreated(result: SteamResult, steamId: SteamID) {
-                println("Lobby created: $steamId")
-                println("  - result: " + result.name)
+                LOGGER!!.info("Lobby created: {} (result={})", steamId, result.name)
                 val instance: Minecraft = Minecraft.getInstance()
                 val user: User = instance.user
                 if (result != SteamResult.OK) return
@@ -302,10 +211,6 @@ class PreLaunch : PreLaunchEntrypoint {
 
                 Steamed.startP2PGame()
                 instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
-            }
-
-            override fun onFavoritesListAccountsUpdated(result: SteamResult?) {
-                println("[onFavoritesListAccountsUpdated]")
             }
         }
 
