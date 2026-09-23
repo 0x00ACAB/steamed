@@ -44,9 +44,10 @@ Status is based on reading the code, not on running the mod, except where noted.
 - [x] `println` replaced with the SLF4J logger; unused steamworks4j demo callbacks (favorites list, web API auth ticket, achievements/leaderboards) removed from `PreLaunch`
 
 ### M5: Joining
-- [x] `onLobbyGameCreated` reads the host's identity from `steamIDGameServer` (this fires for members already in the lobby when the host publishes, and for anyone joining afterward, since the game server is persistent lobby state) — originally read a direct IP:port instead; see M8 for why that changed
+- [x] `onLobbyGameCreated` reads the host's identity from `steamIDGameServer` — originally read a direct IP:port instead; see M8 for why that changed
 - [x] Non-owners connect over the Steam P2P bridge (M8) when the callback fires; the owner ignores its own broadcast
 - [x] Join failures are shown in the UI for free, since `ConnectScreen.startConnecting` already shows a disconnect screen on failure
+- [x] **First real two-account test surfaced a real bug**: `LobbyGameCreated_t` only broadcasts to members who are already in the lobby at the moment `SetLobbyGameServer` is called — it is *not* resent to people who join afterward (confirmed against Valve's docs and a Steamworks.NET issue describing the same "fires once per lobby" behavior). Since hosting starts immediately on lobby creation with no separate "start hosting" step, a friend joining after an invite is the *normal* case, not an edge case — so the automatic connect essentially never fired in practice. Fixed two ways: `onLobbyEnter` now calls `Steamed.joinHostedLobby()` for non-owners, which polls `getLobbyGameServer` directly instead of waiting on the broadcast (works regardless of join order); and `SteamLobbyScreen` got a manual "Join Host" button using the same poll, as a visible fallback/retry a player can act on themselves
 
 ### M8: Transport
 - [x] Decided: Steam P2P relay (`SendP2PPacket`/`ReadP2PPacket`) is the primary transport, not UPnP + direct TCP. It works through NAT, CGNAT, and routers with no UPnP support at all, via Steam's own automatic relay fallback when direct NAT punch-through fails — no port forwarding needed
@@ -58,7 +59,7 @@ Status is based on reading the code, not on running the mod, except where noted.
 - [x] Verified against real Steam, not just by reading the code: a standalone harness sent a packet to this machine's own Steam account and read it back, confirming the buffer bug and its fix; a second harness round-tripped data through the actual compiled `SteamP2PRelay` class via a local socket pair and real `sendP2PPacket`/`readP2PPacket` calls — bytes written into one end came back out the other, correctly, having gone through real Steam P2P transport
 - [x] `net/UPnPublisher.kt`, `net/IServerPublisher.kt`, and `lib/IPv4.kt` are kept in the codebase, unused, as the documented fallback if the P2P relay proves unreliable in practice (the alternatives considered: try NAT-PMP/PCP alongside UPnP via `com.offbynull:portmapper`, a manual-forward fallback message, and preferring IPv6 when available)
 
-Still unverified, same limitation as M5: whether a genuinely different Steam identity — not self-loopback — can pass `SteamNetwork`'s lobby-membership gate and successfully bridge into a real Minecraft server. Self-loopback validated the transport mechanics but not the cross-account accept flow or the `onP2PSessionRequest` handshake against a real second party. That's the next thing to test with an actual friend.
+Still unverified: whether a genuinely different Steam identity — not self-loopback — actually gets bridged in via `SteamNetwork.onP2PSessionRequest`/`SteamP2PRelay` all the way to a connected Minecraft session. The first live two-account test (see M5) didn't get that far — it was blocked earlier, by the lobby-join-timing bug — so the P2P bridge itself is still only self-loopback-verified. Next real test: does "Join Host" (or the fixed auto-connect) actually get a second account into the world.
 
 ### MVP hardening: create lobby -> invite -> join
 Before starting M6, traced and fixed what was blocking the actual host -> invite -> join loop:
