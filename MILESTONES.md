@@ -1,6 +1,6 @@
 # Milestones
 
-Status is based on reading the code, not on running the mod.
+Status is based on reading the code, not on running the mod, except where noted.
 
 ## Done
 
@@ -48,6 +48,16 @@ Status is based on reading the code, not on running the mod.
 - [x] Non-owners auto-connect via `ConnectScreen.startConnecting` when the callback fires; the owner ignores its own broadcast
 - [x] Join failures are shown in the UI for free, since `ConnectScreen.startConnecting` already shows a disconnect screen on failure
 - [x] Port is read as unsigned (`port.toInt() and 0xFFFF`) so hosts above 32767 connect correctly
+
+### MVP hardening: create lobby -> invite -> join
+Before starting M6, traced and fixed what was blocking the actual host -> invite -> join loop:
+- [x] "Create Lobby" is disabled with a tooltip when there's no singleplayer world loaded (`hasSingleplayerServer()`), instead of silently creating an empty lobby with no server behind it (`startP2PGame` used to just log an error nobody would see)
+- [x] `startP2PGame`'s failure path now also posts a system chat message, as a fallback for whatever the button gate doesn't catch
+- [x] Fixed a bug where `startP2PGame` closed `SteamLobbyScreen` before `onLobbyCreated`'s F5 refresh ran, so the F5 landed on the parent screen (a no-op) instead of reopening a fresh lobby screen — the host was silently bounced back to the pause/title screen with a stale, disabled Invite button instead of seeing the now-active lobby
+- [x] `onLobbyCreated` now hops to the client thread (`Minecraft.execute`) before touching `Minecraft`/window/screen state, matching `onLobbyGameCreated` and the threading convention in `CLAUDE.md` — it was previously doing all of this from the Steam callback poller thread
+- [x] Smoke-tested: `./gradlew runClient` against a real, running Steam client reaches the title screen cleanly with Steam initialised and the poller running, no Steamed-related errors. The actual two-account create -> invite -> join loop still needs a live end-to-end test (no GUI automation available here to drive it)
+
+Known risk not yet handled: if the invited friend is already mid-game in their own singleplayer world when `onLobbyGameCreated` fires, `ConnectScreen.startConnecting` is called without first tearing down their local session — vanilla only calls this from a menu state with no world loaded, so behavior here is unverified. Worth a real test; likely needs a `disconnect`/`exitWorldAndClose` first if it turns out to be a problem.
 
 ## Planned
 

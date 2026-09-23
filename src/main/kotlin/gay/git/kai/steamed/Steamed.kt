@@ -74,6 +74,9 @@ class Steamed : ModInitializer, ClientModInitializer {
                 LOGGER.error(
                     "Unable to start local game server, (E01: multiplayer not allowed)"
                 )
+                mc.gui.hud.chat.addClientSystemMessage(
+                    Component.literal("Load a world before creating a Steam lobby")
+                )
                 return
             }
 
@@ -114,7 +117,6 @@ class Steamed : ModInitializer, ClientModInitializer {
                 (port.toShort()),
                 SteamID()
             )
-            mc.gui.screen()?.onClose()
             mc.gui.hud.chat.addClientSystemMessage(message)
             //todo(kai): https://partner.steamgames.com/doc/api/ISteamNetworking#SendP2PPacket
             //todo(kai): whitelist steam access tokens (possibly pre-join handshake packet with an auth token + lobby id)

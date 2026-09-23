@@ -51,6 +51,10 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
 
         topFooterButtons.addChild(this.createLobby!!)
 
+        if (!this.minecraft.hasSingleplayerServer()) {
+            disableButtons("Load a world first to host a lobby", this.createLobby)
+        }
+
         this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
             this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
         }).width(74).build())
