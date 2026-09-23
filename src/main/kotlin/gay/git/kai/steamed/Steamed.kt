@@ -14,6 +14,7 @@ import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
 import net.minecraft.client.server.IntegratedServer
 import net.minecraft.network.chat.Component
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.commands.PublishCommand
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
@@ -66,15 +67,20 @@ class Steamed : ModInitializer, ClientModInitializer {
         @JvmField
         var matchmaking: SteamMatchmaking? = null
 
+        @JvmField
+        var networking: SteamNetworking? = null
+
         @Volatile
-        var lobbyId: Option<SteamID?> = Option<SteamID?>()
+        var lobbyId: Option<SteamID?> = Option()
         var currentLeaderboard: SteamLeaderboardHandle? = null
 
         @Volatile
         var lobbies: MutableMap<Long?, SteamID?> = HashMap<Long?, SteamID?>()
         var timer: Timer? = null
 
-        fun StartP2PGame() {
+        fun startP2PGame() {
+            // create a socket
+
             val mc: Minecraft = Minecraft.getInstance()
             if (!lobbyId.isSome()) {
                 LOGGER.error(
@@ -93,17 +99,17 @@ class Steamed : ModInitializer, ClientModInitializer {
 
             val server: IntegratedServer = mc.singleplayerServer!!
             val port = HttpUtil.getAvailablePort()
-            val message: Component?
 
             server.getWorldData().isAllowCommands
-            if (server.publishServer(
+            val message = if (server.publishServer(
+                    MinecraftServer.MultiplayerScope.LAN,
                     server.defaultGameType,
                     true, port
                 )
             ) {
-                message = PublishCommand.getSuccessMessage(port)
+                PublishCommand.getSuccessMessage(port)
             } else {
-                message = Component.translatable("commands.publish.failed")
+                Component.translatable("commands.publish.failed")
             }
 
 
@@ -127,8 +133,8 @@ class Steamed : ModInitializer, ClientModInitializer {
                 (port.toShort()),
                 SteamID()
             )
-            if (mc.screen != null) mc.screen!!.onClose()
-            mc.gui.chat.addClientSystemMessage(message)
+            mc.gui.screen()?.onClose()
+            mc.gui.hud.chat.addClientSystemMessage(message)
             //todo(kai): https://partner.steamgames.com/doc/api/ISteamNetworking#SendP2PPacket
             //todo(kai): whitelist steam access tokens (possibly pre-join handshake packet with an auth token + lobby id)
         }

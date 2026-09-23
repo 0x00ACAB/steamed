@@ -157,12 +157,12 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
     }
 
     override fun onClose() {
-        this.minecraft.setScreen(this.lastScreen)
+        this.minecraft.gui.setScreen(this.lastScreen)
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
         if (event.key() == KEY_F5) {
-            this.screenExecutor.execute({ this.minecraft.setScreen(SteamLobbyScreen(this.lastScreen)) })
+            this.screenExecutor.execute({ this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen)) })
         }
 
         return super.keyPressed(event)
