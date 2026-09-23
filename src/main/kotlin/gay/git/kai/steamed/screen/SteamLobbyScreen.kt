@@ -40,26 +40,25 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         val topFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))
         val bottomFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))
 
-        this.createLobby = Button.builder(Component.literal("Create Lobby"), { self ->
-            Steamed.matchmaking?.createLobby(SteamMatchmaking.LobbyType.FriendsOnly, 20)?.isValid?.let {
-                if (!it) {
-                    LOGGER.error("Failed to create lobby")
-                    return@builder
+        if (!this.isInsideLobby) {
+            this.createLobby = topFooterButtons.addChild(Button.builder(Component.literal("Create Lobby"), { self ->
+                Steamed.matchmaking?.createLobby(SteamMatchmaking.LobbyType.FriendsOnly, 20)?.isValid?.let {
+                    if (!it) {
+                        LOGGER.error("Failed to create lobby")
+                        return@builder
+                    }
                 }
+                self.active = false
+            }).width(230).build())
+
+            if (!this.minecraft.hasSingleplayerServer()) {
+                disableButtons("Load a world first to host a lobby", this.createLobby)
             }
-            self.active = false
-        }).width(230).build()
-
-        topFooterButtons.addChild(this.createLobby!!)
-
-        if (!this.minecraft.hasSingleplayerServer()) {
-            disableButtons("Load a world first to host a lobby", this.createLobby)
+        } else if (!this.isOwner) {
+            this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
+                Steamed.joinHostedLobby()
+            }).width(230).build())
         }
-
-        this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
-            Steamed.joinHostedLobby()
-        }).width(230).build())
-        this.joinButton?.visible = false
 
         this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
             this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
@@ -71,15 +70,9 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         disableButtons("You are not in a lobby!", this.inviteButton, this.kickButton)
 
         if (this.isInsideLobby) {
-            this.createLobby?.active = !Steamed.lobbyId.isSome()
-            this.createLobby?.visible = !Steamed.lobbyId.isSome()
-
             enableButtons(this.inviteButton, this.kickButton)
 
-            if (!this.isOwner) {
-                disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
-                this.joinButton?.visible = true
-            }
+            if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
 
             disableButtons("There are no players in the lobby", this.kickButton)
         }
