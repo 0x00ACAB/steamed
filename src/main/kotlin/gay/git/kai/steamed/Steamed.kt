@@ -4,10 +4,8 @@
 package gay.git.kai.steamed
 
 import com.codedisaster.steamworks.*
-import gay.git.kai.steamed.lib.IPv4
 import gay.git.kai.steamed.lib.Option
-import gay.git.kai.steamed.net.UPnPublisher
-import kotlinx.io.IOException
+import gay.git.kai.steamed.net.SteamP2PRelay
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
@@ -18,9 +16,7 @@ import net.minecraft.server.commands.PublishCommand
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.xml.sax.SAXException
 import java.util.*
-import javax.xml.parsers.ParserConfigurationException
 import kotlin.concurrent.Volatile
 
 
@@ -51,6 +47,12 @@ class Steamed : ModInitializer, ClientModInitializer {
 
         @JvmField
         var networking: SteamNetworking? = null
+
+        @JvmField
+        var p2pRelay: SteamP2PRelay? = null
+
+        @Volatile
+        var hostedPort: Int? = null
 
         @Volatile
         var lobbyId: Option<SteamID?> = Option()
@@ -97,37 +99,17 @@ class Steamed : ModInitializer, ClientModInitializer {
             }
 
 
-            val published: Option<String?>
-            try {
-                published = UPnPublisher().publish(port)
-            } catch (e: IOException) {
-                LOGGER.error(e.localizedMessage)
-                return
-            } catch (e: ParserConfigurationException) {
-                LOGGER.error(e.localizedMessage)
-                return
-            } catch (e: SAXException) {
-                LOGGER.error(e.localizedMessage)
-                return
-            }
-
-            if (!published.isSome()) {
-                LOGGER.error("Could not forward port {}; friends likely won't be able to connect", port)
-                mc.gui.hud.chat.addClientSystemMessage(
-                    Component.literal("Could not forward the port through UPnP — check your router's UPnP settings, friends may not be able to connect")
-                )
-            }
-            val ip = published.unwrapOr("0.0.0.0")!!
+            hostedPort = port
+            p2pRelay?.start()
 
             matchmaking?.setLobbyGameServer(
                 lobbyId.unwrap(),
-                IPv4.into(ip),
-                (port.toShort()),
-                SteamID()
+                0,
+                0.toShort(),
+                user!!.steamID
             )
             mc.gui.hud.chat.addClientSystemMessage(message)
-            //todo(kai): https://partner.steamgames.com/doc/api/ISteamNetworking#SendP2PPacket
-            //todo(kai): whitelist steam access tokens (possibly pre-join handshake packet with an auth token + lobby id)
+            //todo(kai): auth ticket handshake so a lobby-membership check isn't the only gate (M7)
         }
     }
 }
