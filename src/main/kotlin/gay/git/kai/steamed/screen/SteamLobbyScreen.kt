@@ -127,19 +127,6 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
         if (Steamed.lobbyId.isSome()) {
-            graphics.centeredText(
-                this.font,
-                Component.literal(
-                    "ID: " + Steamed.matchmaking?.getLobbyData(
-                        Steamed.lobbyId.unwrap(),
-                        "name"
-                    )
-                ),
-                this.width / 2,
-                30,
-                -1
-            )
-
             var i = 0
             this.lobbyMembers.forEach {
                 i++
