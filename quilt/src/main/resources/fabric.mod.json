@@ -1,0 +1,47 @@
+{
+	"schemaVersion": 1,
+	"id": "steamed",
+	"version": "0.1.0",
+	"name": "Steamed",
+	"description": "Provides peer-to-peer networking via Steamworks™",
+	"authors": [
+		"Kai Shiraishi"
+	],
+	"contact": {
+		"sources": "https://git.gay/kai/steamed",
+		"email": "contact@kkaii.xyz",
+		"issues": "https://git.gay/kai/steamed/issues"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/steamed/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "gay.git.kai.steamed.quilt.SteamedQuilt",
+				"adapter": "kotlin"
+			}
+		],
+		"preLaunch": [
+			{
+				"value": "gay.git.kai.steamed.quilt.SteamPreLaunchQuilt",
+				"adapter": "kotlin"
+			}
+		],
+		"client": [
+			{
+				"value": "gay.git.kai.steamed.quilt.SteamedQuilt",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"steamed.mixins.json"
+	],
+	"depends": {
+		"fabricloader": "*",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-language-kotlin": "*"
+	}
+}

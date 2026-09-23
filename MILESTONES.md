@@ -76,7 +76,7 @@ The next two items are from when UPnP + direct TCP was still the transport, befo
 
 **Confirmed working**: a real two-account test — a friend hosting, joining from a second account — successfully connected end to end after the M8/M5 fixes above (lobby-join timing, the P2P wake-ping corruption). This is the first time the full create lobby -> invite -> join loop has been verified with an actual second party, not self-loopback.
 
-### M10: Multi-loader (Fabric + NeoForge)
+### M10: Multi-loader (Fabric + NeoForge, Quilt attempted)
 Restructured into `common`/`fabric`/`neoforge` Gradle modules, targeting NeoForge specifically (not classic Forge — chosen since it's the actively-developed fork most current Forge-ecosystem mods target for a version this new). Not Architectury Loom — a Plan agent's research turned up an actively-maintained "MultiLoader-Template" pattern (plain `fabric-loom` + NeoForge's own `net.neoforged.moddev`, plus a hand-rolled `build-logic` convention plugin sharing source sets across modules) with a real, working branch for MC 26.2, which grounded the whole migration in verified specifics instead of generic Architectury tutorial knowledge.
 
 - [x] 12 of 15 source files (everything except `Steamed.kt`, the old `PreLaunch.kt`, and `fabric.mod.json`) moved to `common` completely unchanged — confirmed via grep that only those files ever referenced anything Fabric-specific
@@ -89,8 +89,17 @@ Restructured into `common`/`fabric`/`neoforge` Gradle modules, targeting NeoForg
 - [x] **The biggest open risk — does steamworks4j's native library loading work under NeoForge's classloader — verified directly, not assumed**: `:neoforge:runClient` produced `SteamAPI_Init(): Loaded '.../steamclient.so' OK` and `Steam API initialized: true`, identical to the Fabric side
 - [x] Both mixins apply cleanly on NeoForge with zero `MixinApplyError`/`InvalidInjectionException` — including `PauseMenuMixin`'s MixinExtras `@Local` usage, since NeoForge bundles a compatible MixinExtras (0.5.4) natively
 - [x] `:fabric:runClient` re-tested after all the NeoForge-focused work to confirm zero regression — identical clean startup to before the migration
+- [x] NeoForge production packaging finished: steamworks4j/steamworks4j-lwjgl3/weupnp are `jarJar`'d into the real jar (`META-INF/jarjar/...`, same shape as Fabric's `META-INF/jars/...`) instead of only resolved via the dev-environment classpath. Re-verified with a fresh `:neoforge:runClient` after switching — same clean `SteamAPI_Init(...) OK` / `Steam API initialized: true` as before
 
-Not yet done: jarJar bundling for NeoForge's actual production jar (dev-environment classpath resolution was enough to verify the mechanism), and an actual create-lobby/host test specifically on the NeoForge build (verified Steam init and mixins load, but hosting/joining itself has only been exercised on Fabric so far).
+Not yet done: an actual create-lobby/host test specifically on the NeoForge build (verified Steam init and mixins load, but hosting/joining itself has only been exercised on Fabric so far).
+
+### Quilt: tried, builds, but not verified end to end
+Added a `quilt` module the same way as `fabric`/`neoforge` — same `common` reuse, plain `net.fabricmc.fabric-loom` (not a separate Quilt Loom), `org.quiltmc:quilt-loader` instead of `fabric-loader`. Steamed doesn't call any actual Fabric API surface (confirmed during the NeoForge migration — `fabric-api` was only ever a declared dependency, never imported), so no QSL/QFAPI dependency was needed at all, which matters because **QSL hasn't been updated since 2025-09-21 and tops out at Minecraft 1.21.1** — it would have been a hard blocker for a mod actually using it.
+
+- [x] `:quilt:build` succeeds — compiles cleanly against `common`, produces a real jar with `steamed.mixins.json`, both mixins, and steamworks4j/weupnp bundled via Loom's `include()` exactly like Fabric's
+- [ ] `:quilt:runClient` does **not** work: `quilt-loader` transitively pulls in real `fabric-loader` (confirmed via `./gradlew :quilt:dependencies`), and Fabric Loom's own dev-environment tooling adds another copy independently regardless of dependency excludes — both define classes in the same `net.fabricmc.loader.impl.*` package with different jar signers, which throws `SecurityException: ... signer information does not match ...` at launch. This looks like it's specific to using *Loom's* dev-launch classpath assembly to simulate a Quilt runtime, not something a real end user's Quilt installation would hit (a real install only ever has quilt-loader present, never a second literal fabric-loader jar) — but that's a plausible theory, not something verified here
+- The actual fix for this is Quilt's own Loom fork (`org.quiltmc:loom`), which exists but **only as a snapshot, last published 2025-10-31** — about as stale as QSL. Not a solid foundation to build further verification on right now
+- Left the module in the tree since it builds a real jar and costs nothing to keep, but `:quilt:runClient` specifically is known-broken and there's no live-verified answer yet on whether the built jar actually works in a real Quilt install
 
 ## Planned
 
