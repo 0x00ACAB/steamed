@@ -40,7 +40,8 @@ class UPnPublisher : IServerPublisher {
                 localAddress.hostAddress, "TCP", "Minecraft steam p2p"
             )
         ) {
-            logger.info("Port mapping attempt failed")
+            logger.error("Port mapping attempt failed, external connections likely won't reach this host")
+            return Option.none<String?>()
         }
 
         return Option.some<String?>(d.getExternalIPAddress())
