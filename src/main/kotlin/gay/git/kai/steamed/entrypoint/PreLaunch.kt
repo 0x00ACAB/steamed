@@ -220,24 +220,27 @@ class PreLaunch : PreLaunchEntrypoint {
 
             override fun onLobbyCreated(result: SteamResult, steamId: SteamID) {
                 LOGGER!!.info("Lobby created: {} (result={})", steamId, result.name)
-                val instance: Minecraft = Minecraft.getInstance()
-                val user: User = instance.user
                 if (result != SteamResult.OK) return
 
                 val handle: Long = SteamNativeHandle.getNativeHandle<SteamID?>(steamId)
                 Steamed.lobbies[handle] = steamId
                 Steamed.lobbyId.some(steamId)
-                kv(steamId, "name", UUID.randomUUID().toString())
-                kv(steamId, "max_players", "20")
-                kv(steamId, "owner", user.name)
-                kv(steamId, "owner_uuid", user.profileId.toString())
 
-                instance.window.setTitle(
-                    GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"
-                )
+                val instance: Minecraft = Minecraft.getInstance()
+                instance.execute {
+                    val user: User = instance.user
+                    kv(steamId, "name", UUID.randomUUID().toString())
+                    kv(steamId, "max_players", "20")
+                    kv(steamId, "owner", user.name)
+                    kv(steamId, "owner_uuid", user.profileId.toString())
 
-                Steamed.startP2PGame()
-                instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
+                    instance.window.setTitle(
+                        GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"
+                    )
+
+                    Steamed.startP2PGame()
+                    instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
+                }
             }
         }
 
