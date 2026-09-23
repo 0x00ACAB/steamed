@@ -45,13 +45,16 @@ class SteamNetwork : SteamNetworkingCallback {
         Steamed.networking?.acceptP2PSessionWithUser(steamIDRemote)
         relay.start()
 
-        try {
+        val mcBridgeOk = try {
             val socket = Socket(InetAddress.getLoopbackAddress(), port)
             relay.addPeer(steamIDRemote, socket)
+            true
         } catch (e: IOException) {
             logger.error("Failed to open a local bridge connection for {}", steamIDRemote.accountID, e)
             relay.closePeer(steamIDRemote)
+            false
         }
+        if (!mcBridgeOk) return
 
         val voicePort = Steamed.hostedVoicePort
         val voiceRelay = Steamed.p2pVoiceRelay
