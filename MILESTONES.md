@@ -101,6 +101,19 @@ Added a `quilt` module the same way as `fabric`/`neoforge` — same `common` reu
 - The actual fix for this is Quilt's own Loom fork (`org.quiltmc:loom`), which exists but **only as a snapshot, last published 2025-10-31** — about as stale as QSL. Not a solid foundation to build further verification on right now
 - Left the module in the tree since it builds a real jar and costs nothing to keep, but `:quilt:runClient` specifically is known-broken and there's no live-verified answer yet on whether the built jar actually works in a real Quilt install
 
+### M11: Voice chat tunneling (Simple Voice Chat)
+Companion mods that open their own network port (Simple Voice Chat first) can now have that traffic tunneled over Steam P2P the same way the Minecraft connection itself is (M8) — same session, a second channel, rather than a new negotiation. Confirmed via `javap` against the real `steamworks4j-1.10.0.jar` that P2P sessions are per-peer, not per-channel (`acceptP2PSessionWithUser(SteamID)`/`onP2PSessionRequest(SteamID)` carry no channel argument), so the existing lobby-membership accept gate in `SteamNetwork` already covers a second channel for free.
+
+- [x] `net/SvcIntegration.kt`: reads SVC's port out of `config/voicechat/voicechat-server.properties` (`Services.PLATFORM.gameDir()`, the same helper `SteamInit.createAppid()` already uses); returns `null` if the file is absent (SVC not installed) or unreadable, falls back to the default `24454` if the file exists but the key doesn't. Never throws
+- [x] `net/SteamP2PVoiceRelay.kt`: a UDP sibling to `SteamP2PRelay`, kept as a fully separate class rather than folded into it — `MILESTONES.md`'s own M8 wake-ping bug (a stray byte on the shared channel corrupting the Minecraft connection) is a direct precedent for why voice traffic needs its own channel (1) and its own relay, not a shared one. Sends `Unreliable` instead of `Reliable`; the host side connects its local socket to a fixed remote (its own SVC server) while the joiner side leaves its socket unconnected and learns the remote from the first packet its local SVC client sends; an idle-timeout reaper (60s) closes a peer's voice bridge since `DatagramSocket` has no EOF signal. `closePeer()` calls `closeP2PChannelWithUser(peer, 1)`, never `closeP2PSessionWithUser` — a real correction caught before it shipped: the latter would tear down the whole session, including the live Minecraft channel, on something as routine as a voice idle-timeout
+- [x] The dead `port` field on `setLobbyGameServer`/`getLobbyGameServer` (always `0` since M8's switch away from direct TCP) now carries the host's detected SVC port to the joiner; `ip` stays unused
+- [x] Wired into `startP2PGame`/`connectToHost`/`joinHostedLobby` (`Steamed.kt`) and `onP2PSessionRequest`/`onP2PSessionConnectFail` (`SteamNetwork.kt`) — every voice-bridge failure path is logged and swallowed, never allowed to block or fail the Minecraft connection itself
+- [x] On the joiner side, the local bridge binds on the *same port number* the host's SVC server uses, not an ephemeral one — necessary because SVC's client isn't told about any relay, it just tries to reach "the same host as Minecraft" on whatever port its own server told it about, so something has to be listening there
+- [x] Verified against real Steam, not just by reading the code: a standalone harness sent a marker packet to this machine's own Steam account on channel 1 and confirmed channel 0 never saw it (proving channel isolation), then round-tripped a UDP packet through the actual compiled `SteamP2PVoiceRelay` class — a fake local "SVC client" socket sent data in, and got the identical bytes back, having gone through real Steam P2P transport on channel 1
+- [x] `./gradlew build` across all four modules (fabric/neoforge/quilt/common) and a fresh `:fabric:runClient` both confirmed no regression: Steam init succeeds, no Steamed-related exceptions, only the already-documented benign noise (flite narrator, X11 cursor, Realms auth)
+
+**Not verified, stated plainly**: whether Simple Voice Chat's client actually defaults to "same host as the Minecraft connection" when its own `voice_host` config is blank — this is inferred from convention, not read from SVC's source, and there's no way to install/test real SVC in this environment. Also not verified: an actual host/join UI flow with a real SVC install and two people talking. The mechanism (channel isolation, the relay class itself, the plumbing wiring) is proven against real Steam P2P; real voice audio end to end is not.
+
 ## Planned
 
 ### M6: Lobby management
@@ -117,6 +130,11 @@ Added a `quilt` module the same way as `fabric`/`neoforge` — same `common` reu
 - [ ] Document spacewar limitations
 - [ ] Resolve the license
 - [ ] Replace vanilla `ConnectScreen`'s generic "Connecting to the server..." text with "Establishing connection with <name>...". `ConnectScreen`'s `status` field is private and there's no hook to set it from outside, so this needs either a mixin (fragile — injection points break on MC updates, per the Gotchas above) or a small custom screen instead of calling `ConnectScreen.startConnecting` directly. In the meantime, `connectToHost` posts a chat message naming the host right before `ConnectScreen` opens, as a stopgap
+
+### M11 followups
+- [ ] Live two-account test with a real Simple Voice Chat install: confirm the port value actually flows host -> lobby -> joiner (checkable from logs alone) and, separately, that real voice audio works
+- [ ] If SVC's client doesn't default to "same host as Minecraft" for voice when `voice_host` is blank: have `SvcIntegration` write `voice_host=127.0.0.1` into the host's config, but only when that key is currently blank (never override a deliberate setting) — don't build this speculatively, only after a live test shows it's actually needed
+- [ ] Extend the same per-channel tunneling pattern to other companion mods that open their own port, once SVC itself is confirmed working end to end
 
 ### M10 followups
 - [ ] `jarJar` steamworks4j/steamworks4j-lwjgl3/weupnp into the NeoForge production jar (dev-environment `implementation()` was enough to verify native loading works at all, but isn't how the shipped jar should bundle them)

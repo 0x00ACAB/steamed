@@ -7,6 +7,7 @@ import gay.git.kai.steamed.Steamed
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.Socket
 
@@ -19,7 +20,10 @@ class SteamNetwork : SteamNetworkingCallback {
     ) {
         super.onP2PSessionConnectFail(steamIDRemote, sessionError)
         logger.error("Peer-to-peer connection failure: {}", sessionError)
-        steamIDRemote?.let { Steamed.p2pRelay?.closePeer(it) }
+        steamIDRemote?.let {
+            Steamed.p2pRelay?.closePeer(it)
+            Steamed.p2pVoiceRelay?.closePeer(it)
+        }
     }
 
     override fun onP2PSessionRequest(steamIDRemote: SteamID) {
@@ -47,6 +51,20 @@ class SteamNetwork : SteamNetworkingCallback {
         } catch (e: IOException) {
             logger.error("Failed to open a local bridge connection for {}", steamIDRemote.accountID, e)
             relay.closePeer(steamIDRemote)
+        }
+
+        val voicePort = Steamed.hostedVoicePort
+        val voiceRelay = Steamed.p2pVoiceRelay
+        if (voicePort != null && voicePort != 0 && voiceRelay != null) {
+            try {
+                voiceRelay.start()
+                val voiceSocket = DatagramSocket()
+                voiceSocket.connect(InetAddress.getLoopbackAddress(), voicePort)
+                voiceRelay.addPeer(steamIDRemote, voiceSocket)
+            } catch (e: IOException) {
+                logger.warn("Failed to open a local voice bridge for {}", steamIDRemote.accountID, e)
+                voiceRelay.closePeer(steamIDRemote)
+            }
         }
     }
 
