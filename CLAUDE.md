@@ -6,28 +6,29 @@ Client-side Fabric + NeoForge mod that lets players host and join Minecraft worl
 
 - Minecraft 26.2, Java 25
 - Kotlin 2.4.20 for logic, Java 25 only for mixins
-- Multi-loader: `common`/`fabric`/`neoforge` Gradle modules, source-shared via a hand-rolled `build-logic` convention plugin (not Architectury) — see Layout below
-- Fabric: Fabric Loader 0.19.5, Fabric API, Fabric Language Kotlin, `net.fabricmc.fabric-loom`
+- Multi-loader: `common`/`fabric`/`neoforge`/`quilt` Gradle modules, source-shared via a hand-rolled `build-logic` convention plugin (not Architectury) — see Layout below. `quilt` builds but `:quilt:runClient` doesn't launch (see Gotchas)
+- Fabric: Fabric Loader 0.19.5, Fabric API (declared but unused), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
 - NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle)
-- steamworks4j 1.10.0 and weupnp 0.1.2 (bundled per-platform: Fabric via Loom's `include()`, NeoForge — dev-environment only so far, `jarJar` for production packaging is still a followup, see M10 in `MILESTONES.md`)
+- Quilt: `org.quiltmc:quilt-loader`, reusing plain `net.fabricmc.fabric-loom` (not a separate Quilt Loom — see Gotchas)
+- steamworks4j 1.10.0 and weupnp 0.1.2, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge via ModDevGradle's `jarJar`
 - Versions live in `gradle.properties`
 
 ## Commands
 
-- `./gradlew :fabric:build` / `./gradlew :neoforge:build` builds each platform's jar
-- `./gradlew :fabric:runClient` / `./gradlew :neoforge:runClient` launches a dev client for that loader (the Steam client must be running). NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs are fast
-- Plain `./gradlew build`/`runClient` (no target) doesn't work — there's no code in the root module, always target `:fabric` or `:neoforge`
+- `./gradlew build` builds every module, including `common` on its own (harmless — it can build standalone since it also applies `net.neoforged.moddev` for its own compile-time Minecraft access). `./gradlew :fabric:build` / `:neoforge:build` / `:quilt:build` builds just one platform's jar
+- `./gradlew :fabric:runClient` / `:neoforge:runClient` launches a dev client for that loader (the Steam client must be running). NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs are fast. `:quilt:runClient` does **not** work — see Gotchas. `runClient` always needs a specific `:module` target — there's no meaningful root-level one
 
 No tests exist yet.
 
 ## Layout
 
-Base package `gay.git.kai.steamed` throughout. Three modules:
+Base package `gay.git.kai.steamed` throughout. Four modules:
 
 - `common/`: almost everything — `Steamed.kt` (a plain `object`: Steam interface refs, lobby state, `startP2PGame()`/`connectToHost()`/`joinHostedLobby()`), `SteamInit.kt` (Steam init sequence + all matchmaking callbacks, was `entrypoint/PreLaunch.kt` before the multi-loader split), `net/SteamP2PRelay.kt` (generic TCP<->Steam P2P bridge, the actual transport), `net/SteamNetwork.kt` (accepts P2P sessions from lobby members), `net/UPnPublisher.kt`/`net/IServerPublisher.kt` (unused fallback transport, see M8 in `MILESTONES.md`), `screen/SteamLobbyScreen.kt`, `screen/SteamFriendListScreen.kt` (in-game friend picker, avoids the Steam overlay), `mixin/TitleScreenMixin.java`/`PauseMenuMixin.java`, `steamed.mixins.json`, `platform/IPlatformHelper.kt`+`Services.kt` (the one thing that needs a per-loader implementation — currently just the game directory)
 - `fabric/`: `SteamedFabric.kt` (`ModInitializer`/`ClientModInitializer`, just a log line), `SteamPreLaunchFabric.kt` (`PreLaunchEntrypoint`, calls `SteamInit.initSteam()`), `FabricPlatformHelper.kt`, `fabric.mod.json`
 - `neoforge/`: `SteamedNeoForge.kt` (`@Mod` class — its constructor is the earliest hook NeoForge offers, calls `SteamInit.initSteam()` there; also listens for `FMLClientSetupEvent` for the same log line Fabric's `ClientModInitializer` prints), `NeoForgePlatformHelper.kt`, `neoforge.mods.toml`
-- `build-logic/`: two convention plugins — `multiloader-common` (java-library + kotlin toolchain, shared by all three modules) and `multiloader-loader` (applied by `fabric`/`neoforge`; pulls `common`'s raw source files directly into that platform's own `compileKotlin`/`compileJava`/`processResources` tasks via `commonJava`/`commonResources` outgoing configurations on `common`). This means common code is recompiled per-platform, not consumed as a binary jar — deliberate: it's why steamworks4j only needs bundling once per platform, with each platform's own already-proven mechanism, instead of needing a shared strategy that works identically on both loaders' different jar-in-jar systems
+- `quilt/`: mirrors `fabric/` almost exactly (`SteamedQuilt.kt`, `SteamPreLaunchQuilt.kt`, `QuiltPlatformHelper.kt`, its own `fabric.mod.json` — Quilt Loader reads that format directly, no `quilt.mod.json` needed) — kept as separate files rather than sharing Fabric's, since they're tiny and this avoids new cross-module sharing complexity for two modules that could plausibly diverge later
+- `build-logic/`: two convention plugins — `multiloader-common` (java-library + kotlin toolchain, shared by all four modules) and `multiloader-loader` (applied by `fabric`/`neoforge`/`quilt`; pulls `common`'s raw source files directly into that platform's own `compileKotlin`/`compileJava`/`processResources` tasks via `commonJava`/`commonResources` outgoing configurations on `common`). This means common code is recompiled per-platform, not consumed as a binary jar — deliberate: it's why steamworks4j only needs bundling once per platform, with each platform's own already-proven mechanism, instead of needing a shared strategy that works identically across different loaders' jar-in-jar systems
 
 ## How it works
 
@@ -58,3 +59,4 @@ Base package `gay.git.kai.steamed` throughout. Three modules:
 - The Steam overlay (and `activateGameOverlayInviteDialog`) needs Steam to have launched the process (it sets `LD_PRELOAD` for `gameoverlayrenderer.so`); it doesn't work for a mod launched through a regular Minecraft launcher unless that launcher itself was started as a Non-Steam Game from within Steam. `SteamFriendListScreen` sidesteps this for invites by calling `SteamMatchmaking.inviteUserToLobby` directly instead of relying on the overlay
 - `GridLayout.arrangeElements()` (which `LinearLayout` wraps) sizes rows from *every* child's width unconditionally — it does not check `.visible`. An invisible widget still reserves its full width in the row, which throws off centering for anything else sharing that row. Don't add a widget and toggle `.visible` to hide it if something else might be centered alongside it in the same `LinearLayout`; only add the widget that should actually be there (see `SteamLobbyScreen`'s "Create Lobby"/"Join Host" toggle)
 - For multi-loader Gradle specifics (exact plugin/version choices, why not Architectury, the `commonJava`/`commonResources` source-sharing mechanism), don't guess from generic tutorials — the WFPhantom/MultiLoader-Template GitHub repo has a `26.2` branch that was verified working and is what this project's `build-logic` is adapted from
+- `:quilt:runClient` throws `SecurityException: ... signer information does not match ...` for `net.fabricmc.loader.impl.launch.knot.Knot`. `quilt-loader` transitively pulls in real `fabric-loader`, and plain Fabric Loom's dev-launch tooling adds another copy regardless of dependency excludes — both define the same package with different signers. The real fix is Quilt's own Loom fork (`org.quiltmc:loom`), but as of writing it's snapshot-only and hasn't been published since 2025-10-31 (QSL is similarly stale, capped at MC 1.21.1) — not solid ground to build further verification on. `:quilt:build` itself works fine; only the dev-launch simulation is broken, so this may well not affect a real Quilt install (which never has a second fabric-loader jar present) — that's a plausible theory, not something verified here
