@@ -130,6 +130,11 @@ class PreLaunch : PreLaunchEntrypoint {
                     val member: SteamID = matchmaking?.getLobbyMemberByIndex(steamIDLobby, i)!!
                     LOGGER.info("    - {}: accountID={}", i, member.accountID)
                 }
+
+                if (matchmaking?.getLobbyOwner(steamIDLobby) != user?.steamID) {
+                    LOGGER.info("Checking whether the host is already hosting")
+                    Steamed.joinHostedLobby()
+                }
             }
 
             override fun onLobbyDataUpdate(steamIDLobby: SteamID?, steamIDMember: SteamID, success: Boolean) {

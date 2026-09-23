@@ -163,9 +163,10 @@ class Steamed : ModInitializer, ClientModInitializer {
         }
 
         fun joinHostedLobby() {
-            val mc: Minecraft = Minecraft.getInstance()
             if (!lobbyId.isSome()) {
-                mc.gui.hud.chat.addClientSystemMessage(Component.literal("You're not in a lobby"))
+                Minecraft.getInstance().execute {
+                    Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.literal("You're not in a lobby"))
+                }
                 return
             }
 
@@ -176,12 +177,16 @@ class Steamed : ModInitializer, ClientModInitializer {
 
             if (!hasServer) {
                 LOGGER.error("Lobby has no game server set yet")
-                mc.gui.hud.chat.addClientSystemMessage(Component.literal("The host hasn't started their world yet"))
+                Minecraft.getInstance().execute {
+                    Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.literal("The host hasn't started their world yet"))
+                }
                 return
             }
 
             if (outServer == user?.steamID) {
-                mc.gui.hud.chat.addClientSystemMessage(Component.literal("You're the host"))
+                Minecraft.getInstance().execute {
+                    Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.literal("You're the host"))
+                }
                 return
             }
 
