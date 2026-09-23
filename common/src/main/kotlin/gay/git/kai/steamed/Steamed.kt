@@ -6,6 +6,8 @@ package gay.git.kai.steamed
 import com.codedisaster.steamworks.*
 import gay.git.kai.steamed.lib.Option
 import gay.git.kai.steamed.net.SteamP2PRelay
+import gay.git.kai.steamed.net.SteamP2PVoiceRelay
+import gay.git.kai.steamed.net.SvcIntegration
 import gay.git.kai.steamed.screen.SteamLobbyScreen
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.ConnectScreen
@@ -19,6 +21,7 @@ import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.util.*
@@ -46,8 +49,14 @@ object Steamed {
     @JvmField
     var p2pRelay: SteamP2PRelay? = null
 
+    @JvmField
+    var p2pVoiceRelay: SteamP2PVoiceRelay? = null
+
     @Volatile
     var hostedPort: Int? = null
+
+    @Volatile
+    var hostedVoicePort: Int? = null
 
     @Volatile
     var lobbyId: Option<SteamID?> = Option()
@@ -97,17 +106,20 @@ object Steamed {
         hostedPort = port
         p2pRelay?.start()
 
+        val voicePort = SvcIntegration.detectPort() ?: 0
+        hostedVoicePort = voicePort
+
         matchmaking?.setLobbyGameServer(
             lobbyId.unwrap(),
             0,
-            0.toShort(),
+            voicePort.toShort(),
             user!!.steamID
         )
         mc.gui.hud.chat.addClientSystemMessage(message)
         //todo(kai): auth ticket handshake so a lobby-membership check isn't the only gate (M7)
     }
 
-    fun connectToHost(hostSteamId: SteamID) {
+    fun connectToHost(hostSteamId: SteamID, voicePort: Int = 0) {
         val relay = p2pRelay
         if (relay == null) {
             LOGGER.error("No P2P relay available, cannot connect to {}", hostSteamId.accountID)
@@ -121,6 +133,24 @@ object Steamed {
         val localPort = serverSocket.localPort
 
         relay.start()
+
+        if (voicePort != 0) {
+            val voiceRelay = p2pVoiceRelay
+            if (voiceRelay == null) {
+                LOGGER.warn("No voice relay available, skipping voice bridge for {}", hostSteamId.accountID)
+            } else {
+                try {
+                    voiceRelay.start()
+                    // Bind on the same port number the host's real voice chat server uses: its
+                    // client defaults to "same host as the Minecraft connection" for voice, which
+                    // for a joiner is this loopback bridge - so it must listen on that exact port.
+                    val voiceSocket = DatagramSocket(voicePort, InetAddress.getLoopbackAddress())
+                    voiceRelay.addPeer(hostSteamId, voiceSocket)
+                } catch (e: IOException) {
+                    LOGGER.warn("Failed to set up a voice bridge for {}", hostSteamId.accountID, e)
+                }
+            }
+        }
 
         thread(name = "steamed-p2p-accept", isDaemon = true) {
             try {
@@ -171,6 +201,7 @@ object Steamed {
             return
         }
 
-        connectToHost(outServer)
+        val voicePort = outPort[0].toInt() and 0xFFFF
+        connectToHost(outServer, voicePort)
     }
 }

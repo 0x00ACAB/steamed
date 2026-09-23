@@ -10,6 +10,7 @@ import gay.git.kai.steamed.Steamed.user
 import gay.git.kai.steamed.Steamed.userStats
 import gay.git.kai.steamed.net.SteamNetwork
 import gay.git.kai.steamed.net.SteamP2PRelay
+import gay.git.kai.steamed.net.SteamP2PVoiceRelay
 import gay.git.kai.steamed.platform.Services
 import gay.git.kai.steamed.tasks.SteamCallbackTask
 import gay.git.kai.steamed.tasks.SteamFriendsCallbackEx
@@ -68,6 +69,7 @@ object SteamInit {
 
         networking = SteamNetworking(SteamNetwork())
         Steamed.p2pRelay = SteamP2PRelay(networking!!)
+        Steamed.p2pVoiceRelay = SteamP2PVoiceRelay(networking!!)
 
         LOGGER.info("Starting steam poller task")
         Steamed.timer = Timer("steam-callback-poller", true)
@@ -180,8 +182,9 @@ object SteamInit {
         ) {
             if (steamIDGameServer == null || steamIDGameServer == user?.steamID) return
 
+            val voicePort = port.toInt() and 0xFFFF
             LOGGER.info("Lobby game created, host is {}", steamIDGameServer.accountID)
-            Steamed.connectToHost(steamIDGameServer)
+            Steamed.connectToHost(steamIDGameServer, voicePort)
         }
 
         override fun onLobbyMatchList(lobbiesMatching: Int) {
