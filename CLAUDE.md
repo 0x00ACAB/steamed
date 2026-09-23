@@ -33,8 +33,8 @@ Base package `gay.git.kai.steamed` under `src/main/kotlin` (mixins under `src/ma
 
 1. `PreLaunch` writes `steam_appid.txt` (480), initialises Steam, registers interfaces.
 2. The lobby screen creates a lobby; `onLobbyCreated` sets metadata and calls `startP2PGame()`.
-3. `startP2PGame()` publishes the integrated server, maps the port with UPnP, and writes IP and port to the lobby.
-4. Joining is not implemented yet.
+3. `startP2PGame()` publishes the integrated server, maps the port with UPnP, and writes IP and port to the lobby with `setLobbyGameServer`.
+4. `onLobbyGameCreated` fires for every lobby member (both at publish time and for anyone who joins afterward). Non-owners read the IP/port and connect with `ConnectScreen.startConnecting`; the owner ignores its own broadcast.
 
 ## Conventions
 
