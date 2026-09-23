@@ -1,16 +1,16 @@
 # Steamed
 
-A client-side Fabric mod that lets players host and join Minecraft worlds through Steam lobbies, using Steamworks (via steamworks4j) for matchmaking and UPnP for port forwarding.
+A client-side Fabric + NeoForge mod that lets players host and join Minecraft worlds through Steam lobbies, using Steamworks (via steamworks4j) for matchmaking and Steam's own P2P relay for the connection — no port forwarding needed.
 
 Steam from the steamed craft we're having.
 
 ## Status
 
-Hosting and joining both work: create a friends-only lobby from the pause menu or title screen, invite friends from the in-game picker, and Steamed publishes your integrated server, maps the port with UPnP, and connects invited friends automatically. See `MILESTONES.md` for the full roadmap and known issues.
+Hosting and joining both work: create a friends-only lobby from the pause menu or title screen, invite friends from the in-game picker, and Steamed publishes your integrated server and tunnels invited friends' connections over Steam P2P automatically. See `MILESTONES.md` for the full roadmap and known issues.
 
 ## Requirements
 
-- The Steam client must be running to use any Steam features (`./gradlew runClient` included)
+- The Steam client must be running to use any Steam features (dev client included)
 - Uses Steam's Spacewar test app (ID 480), so lobbies are shared with everyone else testing against that app ID
 
 ## Linux notes
@@ -20,14 +20,18 @@ Inviting friends uses an in-game friend picker rather than the native Steam over
 ## Building
 
 ```
-./gradlew build
+./gradlew :fabric:build
+./gradlew :neoforge:build
 ```
 
 ## Running a dev client
 
 ```
-./gradlew runClient
+./gradlew :fabric:runClient
+./gradlew :neoforge:runClient
 ```
+
+NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs are fast.
 
 ## License
 
