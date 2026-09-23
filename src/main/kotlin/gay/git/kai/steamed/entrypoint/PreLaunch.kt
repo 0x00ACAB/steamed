@@ -3,12 +3,14 @@ package gay.git.kai.steamed.entrypoint
 import com.codedisaster.steamworks.*
 import com.codedisaster.steamworks.SteamAPI.InitResult
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
-import gay.git.kai.steamed.SteamFriendsCallbackEx
+import gay.git.kai.steamed.tasks.SteamFriendsCallbackEx
 import gay.git.kai.steamed.Steamed
 import gay.git.kai.steamed.Steamed.Companion.friends
 import gay.git.kai.steamed.Steamed.Companion.matchmaking
+import gay.git.kai.steamed.Steamed.Companion.networking
 import gay.git.kai.steamed.Steamed.Companion.user
 import gay.git.kai.steamed.Steamed.Companion.userStats
+import gay.git.kai.steamed.net.SteamNetwork
 import gay.git.kai.steamed.tasks.SteamCallbackTask
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint
@@ -61,6 +63,8 @@ class PreLaunch : PreLaunchEntrypoint {
 
         friends = SteamFriends(SteamFriendsCallbackEx())
         matchmaking = SteamMatchmaking(matchmakingCallback)
+
+        networking = SteamNetworking(SteamNetwork());
 
         LOGGER.info("Starting steam poller task")
         Steamed.timer?.schedule(SteamCallbackTask(), 0, 15)
@@ -296,8 +300,8 @@ class PreLaunch : PreLaunchEntrypoint {
                     GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"
                 )
 
-                Steamed.StartP2PGame()
-                instance.screen?.keyPressed(KeyEvent(KEY_F5, 0, 0))
+                Steamed.startP2PGame()
+                instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
             }
 
             override fun onFavoritesListAccountsUpdated(result: SteamResult?) {
