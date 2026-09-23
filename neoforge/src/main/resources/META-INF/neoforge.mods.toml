@@ -1,0 +1,27 @@
+license = "CC0-1.0"
+issueTrackerURL = "https://git.gay/kai/steamed/issues"
+
+[[mods]]
+modId = "steamed"
+version = "0.1.0"
+displayName = "Steamed"
+authors = "Kai Shiraishi"
+description = '''Provides peer-to-peer networking via Steamworks™'''
+displayURL = "https://git.gay/kai/steamed"
+
+[[mixins]]
+config = "steamed.mixins.json"
+
+[[dependencies.steamed]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.steamed]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.2,26.3)"
+ordering = "NONE"
+side = "CLIENT"

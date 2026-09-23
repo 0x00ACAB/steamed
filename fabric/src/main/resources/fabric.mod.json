@@ -18,19 +18,19 @@
 	"entrypoints": {
 		"main": [
 			{
-				"value": "gay.git.kai.steamed.Steamed",
+				"value": "gay.git.kai.steamed.fabric.SteamedFabric",
 				"adapter": "kotlin"
 			}
 		],
 		"preLaunch": [
 			{
-				"value": "gay.git.kai.steamed.entrypoint.PreLaunch",
+				"value": "gay.git.kai.steamed.fabric.SteamPreLaunchFabric",
 				"adapter": "kotlin"
 			}
 		],
 		"client": [
 			{
-				"value": "gay.git.kai.steamed.Steamed",
+				"value": "gay.git.kai.steamed.fabric.SteamedFabric",
 				"adapter": "kotlin"
 			}
 		]
@@ -44,10 +44,5 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"fabric-language-kotlin": "*"
-	},
-	"custom": {
-		"modmenu": {
-			"update_checker": false
-		}
 	}
 }

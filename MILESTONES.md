@@ -61,8 +61,6 @@ Status is based on reading the code, not on running the mod, except where noted.
 
 A second live two-account test (after the M5 lobby-timing fix) got further — past the lobby-timing bug, into an actual P2P connect attempt — and found a second real bug: `connectToHost` sent a 1-byte "wake ping" over the same P2P channel used for real data, to shave a bit of latency off session setup. But the host's relay can't tell a wake ping from real Minecraft protocol bytes — it forwards everything it receives into the local socket connected to the real server. That stray leading byte corrupted the packet framing right at the start of the connection, which explains everything observed: the joiner's log stopping dead right after "Connecting to 127.0.0.1", and the host's log showing `onP2PSessionRequest` firing three separate times ~30s apart for the same account, alongside two separate lobby "Entered" events — a corrupt-then-timeout-then-retry loop. Fixed by removing the wake ping entirely; the relay's own first real send already establishes the P2P session implicitly, so it wasn't needed for correctness, only for a small latency win that wasn't worth the bug.
 
-Still unverified: whether the connection actually completes end to end with this fix — that's the next thing to retest with the same two accounts.
-
 ### MVP hardening: create lobby -> invite -> join
 Before starting M6, traced and fixed what was blocking the actual host -> invite -> join loop:
 - [x] "Create Lobby" is disabled with a tooltip when there's no singleplayer world loaded (`hasSingleplayerServer()`), instead of silently creating an empty lobby with no server behind it (`startP2PGame` used to just log an error nobody would see)
@@ -77,6 +75,22 @@ The next two items are from when UPnP + direct TCP was still the transport, befo
 - [x] Verified the IP/port data path against the real Steam backend for that same UPnP-based flow: a standalone steamworks4j program wrote a test IP and a port above 32767 through `setLobbyGameServer` and read it back bit-for-bit with `getLobbyGameServer`, confirming the callback signature, parameter order, and unsigned-port math were all correct (separately confirmed with a JVM-level round-trip test of `IPv4.into`/`IPv4.from`)
 
 **Confirmed working**: a real two-account test — a friend hosting, joining from a second account — successfully connected end to end after the M8/M5 fixes above (lobby-join timing, the P2P wake-ping corruption). This is the first time the full create lobby -> invite -> join loop has been verified with an actual second party, not self-loopback.
+
+### M10: Multi-loader (Fabric + NeoForge)
+Restructured into `common`/`fabric`/`neoforge` Gradle modules, targeting NeoForge specifically (not classic Forge — chosen since it's the actively-developed fork most current Forge-ecosystem mods target for a version this new). Not Architectury Loom — a Plan agent's research turned up an actively-maintained "MultiLoader-Template" pattern (plain `fabric-loom` + NeoForge's own `net.neoforged.moddev`, plus a hand-rolled `build-logic` convention plugin sharing source sets across modules) with a real, working branch for MC 26.2, which grounded the whole migration in verified specifics instead of generic Architectury tutorial knowledge.
+
+- [x] 12 of 15 source files (everything except `Steamed.kt`, the old `PreLaunch.kt`, and `fabric.mod.json`) moved to `common` completely unchanged — confirmed via grep that only those files ever referenced anything Fabric-specific
+- [x] `Steamed.kt` split: state/logic became a loader-agnostic `object` in `common`; the Fabric `ModInitializer`/`ClientModInitializer` shape moved to a two-line `fabric/.../SteamedFabric.kt` (their bodies carried no real logic to begin with)
+- [x] `PreLaunch.kt` became `common/.../SteamInit.kt` (`fun initSteam()`), called from Fabric's `PreLaunchEntrypoint` as before, and from NeoForge's `@Mod` constructor (the earliest hook NeoForge offers — no literal equivalent to Fabric's very-early `preLaunch`, but early enough since nothing here needs to run before Minecraft's own bootstrap)
+- [x] The one genuine platform-specific call (`FabricLoader.getInstance().gameDir`) became a `ServiceLoader`-based `IPlatformHelper` abstraction (matching the reference template's own convention) rather than pulling in Architectury API for a single method
+- [x] Both mixins moved to `common` unchanged and are referenced from both `fabric.mod.json` and the new `neoforge.mods.toml` as the same shared `steamed.mixins.json` — no per-loader mixin files needed, since neither mixin is actually loader-specific
+- [x] steamworks4j/steamworks4j-lwjgl3/weupnp are declared directly in each platform module (not routed through a shared binary dependency), since `common`'s source files get recompiled directly into each platform's own compilation rather than consumed as a jar — this sidestepped the native-bundling risk entirely: Fabric keeps using its already-proven `include()`, NeoForge dev-environment testing used a plain `implementation()` dependency (jarJar for production packaging is still a followup, see Planned)
+- [x] ModMenu dropped — turned out to have zero functional integration already (no `ModMenuApi` implementation anywhere, just a cosmetic update-nag suppression flag), so nothing was actually lost
+- [x] **The biggest open risk — does steamworks4j's native library loading work under NeoForge's classloader — verified directly, not assumed**: `:neoforge:runClient` produced `SteamAPI_Init(): Loaded '.../steamclient.so' OK` and `Steam API initialized: true`, identical to the Fabric side
+- [x] Both mixins apply cleanly on NeoForge with zero `MixinApplyError`/`InvalidInjectionException` — including `PauseMenuMixin`'s MixinExtras `@Local` usage, since NeoForge bundles a compatible MixinExtras (0.5.4) natively
+- [x] `:fabric:runClient` re-tested after all the NeoForge-focused work to confirm zero regression — identical clean startup to before the migration
+
+Not yet done: jarJar bundling for NeoForge's actual production jar (dev-environment classpath resolution was enough to verify the mechanism), and an actual create-lobby/host test specifically on the NeoForge build (verified Steam init and mixins load, but hosting/joining itself has only been exercised on Fabric so far).
 
 ## Planned
 
@@ -94,3 +108,8 @@ The next two items are from when UPnP + direct TCP was still the transport, befo
 - [ ] Document spacewar limitations
 - [ ] Resolve the license
 - [ ] Replace vanilla `ConnectScreen`'s generic "Connecting to the server..." text with "Establishing connection with <name>...". `ConnectScreen`'s `status` field is private and there's no hook to set it from outside, so this needs either a mixin (fragile — injection points break on MC updates, per the Gotchas above) or a small custom screen instead of calling `ConnectScreen.startConnecting` directly. In the meantime, `connectToHost` posts a chat message naming the host right before `ConnectScreen` opens, as a stopgap
+
+### M10 followups
+- [ ] `jarJar` steamworks4j/steamworks4j-lwjgl3/weupnp into the NeoForge production jar (dev-environment `implementation()` was enough to verify native loading works at all, but isn't how the shipped jar should bundle them)
+- [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
+- [ ] `neoforge.mods.toml`'s version/description/etc. are hardcoded literals mirroring `fabric.mod.json`, same as the original single-module setup — neither actually reads from `gradle.properties` at build time; fine for now but would drift if one gets updated without the other
