@@ -97,9 +97,9 @@ class Steamed : ModInitializer, ClientModInitializer {
             }
 
 
-            val ip: String
+            val published: Option<String?>
             try {
-                ip = UPnPublisher().publish(port).unwrapOr("0.0.0.0")!!
+                published = UPnPublisher().publish(port)
             } catch (e: IOException) {
                 LOGGER.error(e.localizedMessage)
                 return
@@ -110,6 +110,14 @@ class Steamed : ModInitializer, ClientModInitializer {
                 LOGGER.error(e.localizedMessage)
                 return
             }
+
+            if (!published.isSome()) {
+                LOGGER.error("Could not forward port {}; friends likely won't be able to connect", port)
+                mc.gui.hud.chat.addClientSystemMessage(
+                    Component.literal("Could not forward the port through UPnP — check your router's UPnP settings, friends may not be able to connect")
+                )
+            }
+            val ip = published.unwrapOr("0.0.0.0")!!
 
             matchmaking?.setLobbyGameServer(
                 lobbyId.unwrap(),
