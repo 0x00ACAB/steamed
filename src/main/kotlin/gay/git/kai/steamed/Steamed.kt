@@ -127,7 +127,8 @@ class Steamed : ModInitializer, ClientModInitializer {
                 return
             }
 
-            LOGGER.info("Connecting to host {} over Steam P2P", hostSteamId.accountID)
+            val hostName = friends?.getFriendPersonaName(hostSteamId) ?: "the host"
+            LOGGER.info("Connecting to host {} ({}) over Steam P2P", hostName, hostSteamId.accountID)
 
             val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
             val localPort = serverSocket.localPort
@@ -147,6 +148,7 @@ class Steamed : ModInitializer, ClientModInitializer {
 
             val instance: Minecraft = Minecraft.getInstance()
             instance.execute {
+                instance.gui.hud.chat.addClientSystemMessage(Component.literal("Establishing connection with $hostName..."))
                 val address = ServerAddress("127.0.0.1", localPort)
                 val serverData = ServerData("Steam lobby", "127.0.0.1:$localPort", ServerData.Type.LAN)
                 val parent = instance.gui.screen() ?: SteamLobbyScreen(null)

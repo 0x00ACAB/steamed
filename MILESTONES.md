@@ -76,7 +76,7 @@ The next two items are from when UPnP + direct TCP was still the transport, befo
 - [x] Found and fixed a join-blocking bug in the UPnP path: `UPnPublisher.publish` logged a port-mapping failure but still returned the external IP as if it had succeeded, so a router that rejected the mapping would silently get advertised to friends as a working host. It now returns `Option.none()` on mapping failure, and (at the time) `startP2PGame` posted a host-facing chat warning instead of quietly publishing an unreachable address
 - [x] Verified the IP/port data path against the real Steam backend for that same UPnP-based flow: a standalone steamworks4j program wrote a test IP and a port above 32767 through `setLobbyGameServer` and read it back bit-for-bit with `getLobbyGameServer`, confirming the callback signature, parameter order, and unsigned-port math were all correct (separately confirmed with a JVM-level round-trip test of `IPv4.into`/`IPv4.from`)
 
-What's still genuinely unverified, and can't be from this environment: whether a *second* Steam identity actually receives `onLobbyGameCreated`, passes the lobby-membership gate, and can bridge a real connection through to a running Minecraft server — that needs a live two-account test with an actual friend, since there's no GUI automation here to drive a real join, and a single Steam login can't simulate being a non-owner lobby member. See M8 for how far that's been verified without a second party.
+**Confirmed working**: a real two-account test — a friend hosting, joining from a second account — successfully connected end to end after the M8/M5 fixes above (lobby-join timing, the P2P wake-ping corruption). This is the first time the full create lobby -> invite -> join loop has been verified with an actual second party, not self-loopback.
 
 ## Planned
 
@@ -93,3 +93,4 @@ What's still genuinely unverified, and can't be from this environment: whether a
 ### M9: Release
 - [ ] Document spacewar limitations
 - [ ] Resolve the license
+- [ ] Replace vanilla `ConnectScreen`'s generic "Connecting to the server..." text with "Establishing connection with <name>...". `ConnectScreen`'s `status` field is private and there's no hook to set it from outside, so this needs either a mixin (fragile — injection points break on MC updates, per the Gotchas above) or a small custom screen instead of calling `ConnectScreen.startConnecting` directly. In the meantime, `connectToHost` posts a chat message naming the host right before `ConnectScreen` opens, as a stopgap
