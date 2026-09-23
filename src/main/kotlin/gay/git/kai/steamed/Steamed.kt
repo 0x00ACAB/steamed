@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.nio.ByteBuffer
 import java.util.*
 import kotlin.concurrent.Volatile
 import kotlin.concurrent.thread
@@ -134,13 +133,6 @@ class Steamed : ModInitializer, ClientModInitializer {
             val localPort = serverSocket.localPort
 
             relay.start()
-            try {
-                val ping = ByteBuffer.allocateDirect(1)
-                ping.put(0).flip()
-                networking?.sendP2PPacket(hostSteamId, ping, SteamNetworking.P2PSend.Reliable, 0)
-            } catch (e: SteamException) {
-                LOGGER.error("Failed to open a P2P session with the host", e)
-            }
 
             thread(name = "steamed-p2p-accept", isDaemon = true) {
                 try {
