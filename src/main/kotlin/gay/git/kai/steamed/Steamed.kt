@@ -6,9 +6,13 @@ package gay.git.kai.steamed
 import com.codedisaster.steamworks.*
 import gay.git.kai.steamed.lib.Option
 import gay.git.kai.steamed.net.SteamP2PRelay
+import gay.git.kai.steamed.screen.SteamLobbyScreen
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.api.ModInitializer
 import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.screens.ConnectScreen
+import net.minecraft.client.multiplayer.ServerData
+import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.server.IntegratedServer
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
@@ -16,8 +20,13 @@ import net.minecraft.server.commands.PublishCommand
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.nio.ByteBuffer
 import java.util.*
 import kotlin.concurrent.Volatile
+import kotlin.concurrent.thread
 
 
 class Steamed : ModInitializer, ClientModInitializer {
@@ -110,6 +119,73 @@ class Steamed : ModInitializer, ClientModInitializer {
             )
             mc.gui.hud.chat.addClientSystemMessage(message)
             //todo(kai): auth ticket handshake so a lobby-membership check isn't the only gate (M7)
+        }
+
+        fun connectToHost(hostSteamId: SteamID) {
+            val relay = p2pRelay
+            if (relay == null) {
+                LOGGER.error("No P2P relay available, cannot connect to {}", hostSteamId.accountID)
+                return
+            }
+
+            LOGGER.info("Connecting to host {} over Steam P2P", hostSteamId.accountID)
+
+            val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
+            val localPort = serverSocket.localPort
+
+            relay.start()
+            try {
+                val ping = ByteBuffer.allocateDirect(1)
+                ping.put(0).flip()
+                networking?.sendP2PPacket(hostSteamId, ping, SteamNetworking.P2PSend.Reliable, 0)
+            } catch (e: SteamException) {
+                LOGGER.error("Failed to open a P2P session with the host", e)
+            }
+
+            thread(name = "steamed-p2p-accept", isDaemon = true) {
+                try {
+                    val client = serverSocket.accept()
+                    relay.addPeer(hostSteamId, client)
+                } catch (e: IOException) {
+                    LOGGER.error("Failed to accept the local P2P bridge connection", e)
+                } finally {
+                    serverSocket.close()
+                }
+            }
+
+            val instance: Minecraft = Minecraft.getInstance()
+            instance.execute {
+                val address = ServerAddress("127.0.0.1", localPort)
+                val serverData = ServerData("Steam lobby", "127.0.0.1:$localPort", ServerData.Type.LAN)
+                val parent = instance.gui.screen() ?: SteamLobbyScreen(null)
+                ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
+            }
+        }
+
+        fun joinHostedLobby() {
+            val mc: Minecraft = Minecraft.getInstance()
+            if (!lobbyId.isSome()) {
+                mc.gui.hud.chat.addClientSystemMessage(Component.literal("You're not in a lobby"))
+                return
+            }
+
+            val outIp = IntArray(1)
+            val outPort = ShortArray(1)
+            val outServer = SteamID()
+            val hasServer = matchmaking?.getLobbyGameServer(lobbyId.unwrap(), outIp, outPort, outServer) ?: false
+
+            if (!hasServer) {
+                LOGGER.error("Lobby has no game server set yet")
+                mc.gui.hud.chat.addClientSystemMessage(Component.literal("The host hasn't started their world yet"))
+                return
+            }
+
+            if (outServer == user?.steamID) {
+                mc.gui.hud.chat.addClientSystemMessage(Component.literal("You're the host"))
+                return
+            }
+
+            connectToHost(outServer)
         }
     }
 }
