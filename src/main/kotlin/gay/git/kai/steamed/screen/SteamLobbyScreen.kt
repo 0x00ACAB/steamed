@@ -52,7 +52,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         topFooterButtons.addChild(this.createLobby!!)
 
         this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
-            Steamed.friends?.activateGameOverlayInviteDialog(Steamed.lobbyId.unwrap())
+            this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
         }).width(74).build())
 
         this.kickButton =

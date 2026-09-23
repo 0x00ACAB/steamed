@@ -19,8 +19,9 @@ Status is based on reading the code, not on running the mod.
 ### M2: UI
 - [x] Title screen shows Steam login state; clicking it opens the lobby screen
 - [x] "Steam Lobby" button on the pause menu
-- [x] `SteamLobbyScreen`: create lobby, invite (Steam overlay), back, lobby name, member list (refreshed every 5 s), F5 to reload
+- [x] `SteamLobbyScreen`: create lobby, invite, back, lobby name, member list (refreshed every 5 s), F5 to reload
 - [x] Buttons disabled with tooltips when not in a lobby or not the owner
+- [x] `SteamFriendListScreen`: in-game friend picker (select an online friend, click Invite) using `SteamMatchmaking.inviteUserToLobby` directly, instead of `activateGameOverlayInviteDialog` — works even when the Steam overlay isn't available (notably on Linux without launching through Steam; see README)
 
 ### M3: Lobby and hosting
 - [x] Create a friends-only lobby (max 20) with metadata: `name`, `max_players`, `owner`, `owner_uuid`
