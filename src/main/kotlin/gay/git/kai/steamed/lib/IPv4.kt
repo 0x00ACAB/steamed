@@ -1,17 +1,13 @@
 package gay.git.kai.steamed.lib
 
-import kotlin.math.pow
-
 object IPv4 {
     fun into(ipAddress: String): Int {
-        val ipAddressInArray: Array<String?> =
-            ipAddress.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val octets = ipAddress.split(".").dropLastWhile { it.isEmpty() }
 
         var result = 0
-        for (i in ipAddressInArray.indices) {
-            val power = 3 - i
-            val ip = ipAddressInArray[i]!!.toInt()
-            result += (ip * 256.0.pow(power.toDouble())).toInt()
+        for (i in octets.indices) {
+            val shift = (3 - i) * 8
+            result = result or (octets[i].toInt() shl shift)
         }
 
         return result

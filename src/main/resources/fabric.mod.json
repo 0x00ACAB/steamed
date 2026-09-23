@@ -12,7 +12,7 @@
 		"email": "contact@kkaii.xyz",
 		"issues": "https://git.gay/kai/steamed/issues"
 	},
-	"license": "GNU GPL v3",
+	"license": "CC0-1.0",
 	"icon": "assets/steamed/icon.png",
 	"environment": "client",
 	"entrypoints": {

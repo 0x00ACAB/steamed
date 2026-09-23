@@ -101,6 +101,8 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         if (ticks < 100) return
         ticks = 0
 
+        if (!Steamed.lobbyId.isSome()) return
+
         lobbyMembers.clear()
         LOGGER.info("asking steam nicely for the number of lobby members >_<")
 
@@ -108,7 +110,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         for (i in 1..n) {
             LOGGER.info("on $i of $n")
 
-            val id = Steamed.matchmaking?.getLobbyMemberByIndex(Steamed.lobbyId.unwrap(), n - 1)
+            val id = Steamed.matchmaking?.getLobbyMemberByIndex(Steamed.lobbyId.unwrap(), i - 1)
             val name = Steamed.friends?.getFriendPersonaName(id)
 
             LOGGER.info("$id (known as $name)")
