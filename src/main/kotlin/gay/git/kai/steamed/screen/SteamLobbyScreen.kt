@@ -20,6 +20,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
     private var kickButton: Button? = null
     private var inviteButton: Button? = null
     private var createLobby: Button? = null
+    private var joinButton: Button? = null
 
     private var isInsideLobby = false
     private var isOwner = false
@@ -55,6 +56,11 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
             disableButtons("Load a world first to host a lobby", this.createLobby)
         }
 
+        this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
+            Steamed.joinHostedLobby()
+        }).width(230).build())
+        this.joinButton?.visible = false
+
         this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
             this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
         }).width(74).build())
@@ -70,7 +76,10 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
 
             enableButtons(this.inviteButton, this.kickButton)
 
-            if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
+            if (!this.isOwner) {
+                disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
+                this.joinButton?.visible = true
+            }
 
             disableButtons("There are no players in the lobby", this.kickButton)
         }
