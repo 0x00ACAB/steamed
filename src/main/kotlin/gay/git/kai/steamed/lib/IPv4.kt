@@ -12,4 +12,11 @@ object IPv4 {
 
         return result
     }
+
+    fun from(ipAddress: Int): String {
+        return (0..3).joinToString(".") { i ->
+            val shift = (3 - i) * 8
+            ((ipAddress ushr shift) and 0xFF).toString()
+        }
+    }
 }

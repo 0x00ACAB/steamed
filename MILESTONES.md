@@ -42,17 +42,13 @@ Status is based on reading the code, not on running the mod.
 - [x] README rewritten to describe the mod instead of the Fabric template
 - [x] `println` replaced with the SLF4J logger; unused steamworks4j demo callbacks (favorites list, web API auth ticket, achievements/leaderboards) removed from `PreLaunch`
 
-## Known issues
-
-- `port.toShort()` wraps for ports above 32767; there's no read side yet to add unsigned handling to (tracked under M5)
+### M5: Joining
+- [x] `onLobbyGameCreated` reads the host's IP/port (this fires for members already in the lobby when the host publishes, and for anyone joining afterward, since the game server is persistent lobby state)
+- [x] Non-owners auto-connect via `ConnectScreen.startConnecting` when the callback fires; the owner ignores its own broadcast
+- [x] Join failures are shown in the UI for free, since `ConnectScreen.startConnecting` already shows a disconnect screen on failure
+- [x] Port is read as unsigned (`port.toInt() and 0xFFFF`) so hosts above 32767 connect correctly
 
 ## Planned
-
-### M5: Joining
-- [ ] Handle `onLobbyGameCreated` / read `getLobbyGameServer` on the joiner
-- [ ] Connect to the host from the lobby screen or automatically after joining
-- [ ] Show join failures in the UI
-- [ ] Read the port as unsigned (`port.toShort()` on the host side wraps above 32767)
 
 ### M6: Lobby management
 - [ ] Leave lobby and clear `lobbyId`; close the lobby when the world closes

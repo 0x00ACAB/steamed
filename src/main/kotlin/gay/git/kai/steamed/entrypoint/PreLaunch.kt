@@ -10,13 +10,18 @@ import gay.git.kai.steamed.Steamed.Companion.matchmaking
 import gay.git.kai.steamed.Steamed.Companion.networking
 import gay.git.kai.steamed.Steamed.Companion.user
 import gay.git.kai.steamed.Steamed.Companion.userStats
+import gay.git.kai.steamed.lib.IPv4
 import gay.git.kai.steamed.net.SteamNetwork
+import gay.git.kai.steamed.screen.SteamLobbyScreen
 import gay.git.kai.steamed.tasks.SteamCallbackTask
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
+import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.input.KeyEvent
+import net.minecraft.client.multiplayer.ServerData
+import net.minecraft.client.multiplayer.resolver.ServerAddress
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -167,6 +172,28 @@ class PreLaunch : PreLaunchEntrypoint {
                     )
                 } catch (e: SteamException) {
                     LOGGER!!.error("Failed to read lobby chat message #{}", chatID, e)
+                }
+            }
+
+            override fun onLobbyGameCreated(
+                steamIDLobby: SteamID?,
+                steamIDGameServer: SteamID?,
+                ip: Int,
+                port: Short
+            ) {
+                val isOwner = matchmaking?.getLobbyOwner(steamIDLobby) == user?.steamID
+                if (isOwner) return
+
+                val host = IPv4.from(ip)
+                val hostPort = port.toInt() and 0xFFFF
+                LOGGER!!.info("Lobby game created at {}:{}, connecting", host, hostPort)
+
+                val instance: Minecraft = Minecraft.getInstance()
+                instance.execute {
+                    val address = ServerAddress(host, hostPort)
+                    val serverData = ServerData("Steam lobby", "$host:$hostPort", ServerData.Type.LAN)
+                    val parent = instance.gui.screen() ?: SteamLobbyScreen(null)
+                    ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
                 }
             }
 
