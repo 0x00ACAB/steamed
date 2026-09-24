@@ -65,6 +65,21 @@ object Steamed {
     var lobbies: MutableMap<Long?, SteamID?> = HashMap<Long?, SteamID?>()
     var timer: Timer? = null
 
+    fun leaveLobby() {
+        p2pRelay?.stop()
+        p2pVoiceRelay?.stop()
+
+        if (lobbyId.isSome()) {
+            val lobby = lobbyId.unwrap()
+            matchmaking?.leaveLobby(lobby)
+            LOGGER.info("Left lobby {}", lobby)
+        }
+
+        lobbyId.some(null)
+        hostedPort = null
+        hostedVoicePort = null
+    }
+
     fun startP2PGame() {
         // create a socket
 

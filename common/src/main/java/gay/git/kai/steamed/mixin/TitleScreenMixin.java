@@ -19,6 +19,9 @@ public class TitleScreenMixin extends Screen {
 
 	@Inject(at = @At("RETURN"), method = "init")
 	public void init(CallbackInfo info) {
+		// Reaching the title screen means whatever world was running (host or joined) just closed.
+		Steamed.INSTANCE.leaveLobby();
+
 		String message = Steamed.friends == null ? "Not logged into Steam" : String.format("Logged in as %s", Steamed.friends.getPersonaName());
 		TitleScreen thisObject = (TitleScreen) (Object) this;
 		int width = this.font.width(message);
