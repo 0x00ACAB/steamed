@@ -114,12 +114,17 @@ Companion mods that open their own network port (Simple Voice Chat first) can no
 
 **Not verified, stated plainly**: whether Simple Voice Chat's client actually defaults to "same host as the Minecraft connection" when its own `voice_host` config is blank — this is inferred from convention, not read from SVC's source, and there's no way to install/test real SVC in this environment. Also not verified: an actual host/join UI flow with a real SVC install and two people talking. The mechanism (channel isolation, the relay class itself, the plumbing wiring) is proven against real Steam P2P; real voice audio end to end is not.
 
+### M6 (partial): leave the lobby and stop relays when the world closes
+Until now there was no way to leave a lobby short of quitting the whole game — closing a world (host quitting to title, or a joiner disconnecting) left both P2P relays running and the Steam lobby occupied indefinitely.
+
+- [x] `Steamed.leaveLobby()`: stops `p2pRelay` and `p2pVoiceRelay` (closing every open peer session), calls `matchmaking.leaveLobby` if currently in one, and clears `lobbyId`/`hostedPort`/`hostedVoicePort`
+- [x] Wired into `TitleScreenMixin.init()` — reaching the title screen reliably means whatever world was running (hosted or joined) just closed, and this mixin was already injecting there. Unconditional and safe to call even when nothing was happening: guarded by `lobbyId.isSome()` and null-safe calls throughout, confirmed by a smoke test where Steam itself wasn't even running
+- [x] Verified: `./gradlew build` across all four modules, and a `:fabric:runClient` smoke test confirmed the mixin still applies cleanly (no `MixinApplyError`) and the client reaches the title screen without exception
+
 ## Planned
 
 ### M6: Lobby management
-- [ ] Leave lobby and clear `lobbyId`; close the lobby when the world closes
-- [ ] Implement Kick
-- [ ] Stop the P2P relay and close open sessions when the lobby/world closes
+- [ ] Implement Kick — note: `ISteamMatchmaking` has no owner-forces-member-out primitive (confirmed via `javap` against the real jar: only `leaveLobby(SteamID)` exists, which is self-directed). A real "Kick" would have to work at the P2P layer instead — close the target's session on both relays and maintain a ban list `SteamNetwork.onP2PSessionRequest` checks, since Steam lobby membership itself can't be revoked by the owner
 - [ ] Lobby browser (`requestLobbyList` with a mod-specific filter, since app 480 is shared)
 
 ### M7: Access control
