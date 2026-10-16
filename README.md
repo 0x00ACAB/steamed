@@ -28,6 +28,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 ## Features
 
 - **No port forwarding.** Works behind NAT, CGNAT and routers without UPnP. Steam connects you directly when it can and relays the traffic when it can't
+- **Join friends without waiting for an invite.** The Steam Lobby screen lists the Steam friends hosting a world right now, with a Join button
 - **Only the people you invite.** Lobbies are friends-only or invite-only. Every joiner proves who they are with a Steam auth ticket before they can reach your world, and your world isn't opened to your LAN while you host through Steam
 - **Lobby management.** Kick players, leave the lobby, and everyone is disconnected cleanly when the host closes it
 - **Voice chat comes along.** [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) and [Plasmo Voice](https://modrinth.com/plugin/plasmo-voice) are tunnelled over Steam too, with no extra setup

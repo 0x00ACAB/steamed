@@ -189,6 +189,12 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [x] **Fixed: an invite used to join the lobby, and so the host's world, without the invited player doing anything.** `onLobbyInvite` called `joinLobby` directly. It now only records the invite (`Steamed.pendingInvite`, latest one wins), shows a toast and a chat line, and the Steam Lobby screen offers Accept/Decline. Steam's own "Join Game" / accept in the friends list (`onGameLobbyJoinRequested`) still joins straight away, since the player clicked it. Found in a two-computer test, 2026-10-16
 - [x] Verified in a Fabric dev client with a fake invite: toast, chat line, and the Accept/Decline row on the lobby screen
 
+### Joining friends without an invite
+- [x] Outside a lobby, the Steam Lobby screen lists the Steamed lobbies Steam friends are in (`FriendLobbies`, via `getFriendGamePlayed` and `requestLobbyData`), with the friends' heads, the world name and a Join button. A pending invite is a row in the same list
+- [x] Hosts tag their lobby with `steamed` (mod version) and `visibility`. Lobbies without the tag (other app 480 games) and invite-only ones aren't listed. A host on another Steamed version is shown in red with Join disabled, since the handshake isn't versioned and a mixed-version join would just time out
+- [x] Verified in a Fabric dev client: the tags are set on a real lobby; the empty, invite, joinable and version-mismatch rows render (with test data)
+- [ ] Live check with a friend hosting: listed, joinable, and an invite-only lobby not listed
+
 ### Joining feedback and lobby heads
 - [x] `SteamConnectingScreen` ("Joining <host>", "Connecting through Steam" with loading dots, Cancel) is shown while the auth handshake and Steam's NAT traversal run, instead of a chat line. A denial or timeout shows the reason on it with a Back button. Cancel leaves the lobby. Minecraft's own `ConnectScreen` then takes over, with the connecting screen's parent as its parent
 - [x] The lobby screen's member list shows each member's head (an inline `PlayerSprite` text component, resolved from the `mc_uuid` member data) and marks the host

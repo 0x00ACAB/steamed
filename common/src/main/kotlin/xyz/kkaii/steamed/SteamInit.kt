@@ -257,6 +257,9 @@ object SteamInit {
                 kv(steamId, "max_players", "20")
                 kv(steamId, "owner", user.name)
                 kv(steamId, "owner_uuid", user.profileId.toString())
+                // Marks the lobby as Steamed's among every other Spacewar (480) lobby, for FriendLobbies.
+                kv(steamId, FriendLobbies.MARKER_KEY, Services.PLATFORM.modVersion())
+                kv(steamId, FriendLobbies.VISIBILITY_KEY, FriendLobbies.visibilityOf(Steamed.creatingLobbyType))
 
                 instance.window.setTitle(
                     GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"

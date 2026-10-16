@@ -113,6 +113,10 @@ object Steamed {
         if (lobbyWorldStarted) leaveLobby()
     }
 
+    // The type the lobby screen last asked Steam to create, so onLobbyCreated can record it as lobby data.
+    @Volatile
+    var creatingLobbyType: SteamMatchmaking.LobbyType = SteamMatchmaking.LobbyType.FriendsOnly
+
     data class Invite(val lobby: SteamID, val inviter: SteamID, val inviterName: String)
 
     // Invites only notify; joining needs the player to accept in the lobby screen.
