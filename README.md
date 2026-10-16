@@ -12,6 +12,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 ![Minecraft 26.2](https://img.shields.io/badge/Minecraft-26.2-62B47A?style=flat-square)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4?style=flat-square)
 ![NeoForge](https://img.shields.io/badge/loader-NeoForge-D7742F?style=flat-square)
+[![Build](https://img.shields.io/github/actions/workflow/status/0x00ACAB/steamed/build.yml?branch=main&style=flat-square&label=build)](https://github.com/0x00ACAB/steamed/actions/workflows/build.yml)
 ![Status: beta](https://img.shields.io/badge/status-beta-E0A030?style=flat-square)
 ![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey?style=flat-square)
 
