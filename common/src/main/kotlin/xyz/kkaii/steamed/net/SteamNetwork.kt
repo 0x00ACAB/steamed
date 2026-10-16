@@ -10,7 +10,6 @@ import java.io.IOException
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.Socket
-import java.nio.charset.StandardCharsets
 
 class SteamNetwork : SteamNetworkingCallback {
     private val logger: Logger = LoggerFactory.getLogger("SteamP2P#PreLaunch")
@@ -78,7 +77,7 @@ class SteamNetwork : SteamNetworkingCallback {
                 false
             }
         }
-        return bridged.joinToString(",").toByteArray(StandardCharsets.US_ASCII)
+        return VoicePorts.encode(bridged)
     }
 
     fun unbridgePeer(peer: SteamID) {

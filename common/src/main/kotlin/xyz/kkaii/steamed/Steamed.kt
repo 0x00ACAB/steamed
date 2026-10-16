@@ -9,6 +9,7 @@ import xyz.kkaii.steamed.mixin.ConnectScreenAccessor
 import xyz.kkaii.steamed.net.SteamAuthHandshake
 import xyz.kkaii.steamed.net.SteamP2PRelay
 import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
+import xyz.kkaii.steamed.net.VoicePorts
 import xyz.kkaii.steamed.net.PlasmoVoiceIntegration
 import xyz.kkaii.steamed.net.PublicTunnelMods
 import xyz.kkaii.steamed.net.SvcIntegration
@@ -39,7 +40,6 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.Volatile
@@ -363,7 +363,7 @@ object Steamed {
         handshake.requestAccess(
             hostSteamId,
             onAccepted = { payload ->
-                val voicePorts = String(payload, StandardCharsets.US_ASCII).split(',').mapNotNull { it.toIntOrNull() }
+                val voicePorts = VoicePorts.decode(payload)
                 openBridgeToHost(relay, hostSteamId, hostName, voicePorts)
             },
             onDenied = { reason ->

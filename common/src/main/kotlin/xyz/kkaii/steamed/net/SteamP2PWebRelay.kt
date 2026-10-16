@@ -9,7 +9,6 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
@@ -57,11 +56,7 @@ class SteamP2PWebRelay(private val networking: SteamNetworking) {
         if (maps.isEmpty()) return
         start()
         offered[SteamID(peer)] = maps
-        val names = maps.map { it.name.toByteArray(StandardCharsets.UTF_8) }
-        val frame = ByteBuffer.allocate(2 + names.sumOf { 1 + it.size })
-        frame.put(SERVICES).put(maps.size.toByte())
-        names.forEach { frame.put(it.size.toByte()).put(it) }
-        send(peer, frame.array())
+        send(peer, WebMapList.encode(SERVICES, maps.map { it.name }))
     }
 
     private fun receiveLoop() {
@@ -91,13 +86,7 @@ class SteamP2PWebRelay(private val networking: SteamNetworking) {
         when (frame.get()) {
             SERVICES -> {
                 if (sender != expectedHost) return
-                val count = frame.get().toInt() and 0xFF
-                val names = (0 until count).map {
-                    val bytes = ByteArray(frame.get().toInt() and 0xFF)
-                    frame.get(bytes)
-                    String(bytes, StandardCharsets.UTF_8)
-                }
-                listenFor(sender, names)
+                listenFor(sender, WebMapList.decode(frame))
             }
             OPEN -> {
                 val id = frame.getInt()

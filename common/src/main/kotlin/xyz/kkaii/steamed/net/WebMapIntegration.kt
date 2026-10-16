@@ -20,8 +20,8 @@ object WebMapIntegration {
     private val gameDir: Path get() = Path.of(Services.PLATFORM.gameDir())
 
     private val candidates = listOf(
-        Candidate("BlueMap", gameDir.resolve("config/bluemap/webserver.conf"), ::readHocon),
-        Candidate("squaremap", gameDir.resolve("squaremap/config.yml"), ::readInternalWebserver),
+        Candidate("BlueMap", gameDir.resolve("config/bluemap/webserver.conf"), WebMapConfig::readHocon),
+        Candidate("squaremap", gameDir.resolve("squaremap/config.yml"), WebMapConfig::readInternalWebserver),
     )
 
     fun detect(): List<WebMap> = candidates.mapNotNull { candidate ->
@@ -55,34 +55,5 @@ object WebMapIntegration {
         }
     } catch (_: Exception) {
         false
-    }
-
-    // BlueMap's webserver.conf: top-level `enabled: true` and `port: 8100`.
-    private fun readHocon(lines: List<String>): Pair<Boolean, Int>? {
-        val values = lines.map { it.substringBefore('#').trim() }
-            .filter { ':' in it }
-            .associate { it.substringBefore(':').trim() to it.substringAfter(':').trim() }
-        val port = values["port"]?.toIntOrNull() ?: return null
-        return (values["enabled"] != "false") to port
-    }
-
-    // squaremap: `enabled` and `port` under `internal-webserver:`.
-    private fun readInternalWebserver(lines: List<String>): Pair<Boolean, Int>? {
-        val start = lines.indexOfFirst { it.trim() == "internal-webserver:" }
-        if (start < 0) return null
-        val indent = lines[start].indexOfFirst { !it.isWhitespace() }
-        var enabled = true
-        var port: Int? = null
-        for (line in lines.drop(start + 1)) {
-            if (line.isBlank() || line.trim().startsWith("#")) continue
-            if (line.indexOfFirst { !it.isWhitespace() } <= indent) break
-            val key = line.substringBefore(':').trim()
-            val value = line.substringAfter(':').substringBefore('#').trim()
-            when (key) {
-                "enabled" -> enabled = value != "false"
-                "port" -> port = value.toIntOrNull()
-            }
-        }
-        return port?.let { enabled to it }
     }
 }
