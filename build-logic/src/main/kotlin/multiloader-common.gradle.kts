@@ -11,6 +11,10 @@ kotlin {
     jvmToolchain(25)
 }
 
+base {
+    archivesName = "steamed-${project.name}"
+}
+
 tasks.withType<Jar>().configureEach {
     from(rootProject.file("LICENSE")) {
         rename { "${it}_steamed" }
