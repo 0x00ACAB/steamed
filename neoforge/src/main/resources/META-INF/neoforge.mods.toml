@@ -1,13 +1,13 @@
-license = "CC0-1.0"
-issueTrackerURL = "https://git.gay/kai/steamed/issues"
+license = "${mod_license}"
+issueTrackerURL = "${mod_issues_url}"
 
 [[mods]]
 modId = "steamed"
-version = "0.1.0"
-displayName = "Steamed"
-authors = "Kai Shiraishi"
-description = '''Provides peer-to-peer networking via Steamworks™'''
-displayURL = "https://git.gay/kai/steamed"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+displayURL = "${mod_sources_url}"
 
 [[mixins]]
 config = "steamed.mixins.json"
