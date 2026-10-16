@@ -8,11 +8,12 @@ steamworks4j). Progress and plans are in `milestones.md`.
 - Minecraft 26.2, Java 25
 - Kotlin 2.4.20 for logic, Java 25 only for mixins
 - Multi-loader: `common`/`fabric`/`neoforge`/`quilt` Gradle modules, source-shared via a hand-rolled `build-logic`
-  convention plugin (not Architectury) — see Layout below. `quilt` builds but `:quilt:runClient` doesn't launch (see
-  Gotchas)
-- Fabric: Fabric Loader 0.19.5, Fabric API (declared but unused), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
+  convention plugin (not Architectury) — see Layout below
+- Fabric: Fabric Loader 0.19.5, Fabric API (required: nothing imports it, but its resource loader is what loads
+  `assets/steamed`; neither Fabric nor Quilt Loader do that alone), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
 - NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle)
-- Quilt: `org.quiltmc:quilt-loader`, reusing plain `net.fabricmc.fabric-loom` (not a separate Quilt Loom — see Gotchas)
+- Quilt: `org.quiltmc:quilt-loader` plus plain Fabric API (Quilted Fabric API stops at 1.20.1), reusing plain
+  `net.fabricmc.fabric-loom` (not a separate Quilt Loom — see Gotchas)
 - steamworks4j 1.10.0, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge via ModDevGradle's
   `jarJar`
 - Versions live in `gradle.properties`, and so does the mod's metadata (`mod_*` keys): `multiloader-loader` expands them
@@ -22,7 +23,7 @@ steamworks4j). Progress and plans are in `milestones.md`.
 ## Release
 
 - Releases should go both on modrinth and github releases
-- Each release should include the three platform-specific jars (quilt & normal forge exempt for now)
+- Each release should include the three platform-specific jars (Fabric, NeoForge, Quilt; classic Forge exempt for now)
 - Release notes should detail the changes and improvements in each version
 
 ## Commands
@@ -30,9 +31,9 @@ steamworks4j). Progress and plans are in `milestones.md`.
 - `./gradlew build` builds every module, including `common` on its own (harmless — it can build standalone since it also
   applies `net.neoforged.moddev` for its own compile-time Minecraft access). `./gradlew :fabric:build` /
   `:neoforge:build` / `:quilt:build` builds just one platform's jar
-- `./gradlew :fabric:runClient` / `:neoforge:runClient` launches a dev client for that loader (the Steam client must be
+- `./gradlew :fabric:runClient` / `:neoforge:runClient` / `:quilt:runClient` launches a dev client for that loader (the Steam client must be
   running). NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs
-  are fast. `:quilt:runClient` does **not** work — see Gotchas. `runClient` always needs a specific `:module` target —
+  are fast. `runClient` always needs a specific `:module` target —
   there's no meaningful root-level one
 
 GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag
@@ -166,11 +167,9 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
 - For multi-loader Gradle specifics (exact plugin/version choices, why not Architectury, the `commonJava`/
   `commonResources` source-sharing mechanism), don't guess from generic tutorials — the WFPhantom/MultiLoader-Template
   GitHub repo has a `26.2` branch that was verified working and is what this project's `build-logic` is adapted from
-- `:quilt:runClient` throws `SecurityException: ... signer information does not match ...` for
-  `net.fabricmc.loader.impl.launch.knot.Knot`. `quilt-loader` transitively pulls in real `fabric-loader`, and plain
-  Fabric Loom's dev-launch tooling adds another copy regardless of dependency excludes — both define the same package
-  with different signers. The real fix is Quilt's own Loom fork (`org.quiltmc:loom`), but as of writing it's
-  snapshot-only and hasn't been published since 2025-10-31 (QSL is similarly stale, capped at MC 1.21.1) — not solid
-  ground to build further verification on. `:quilt:build` itself works fine; only the dev-launch simulation is broken,
-  so this may well not affect a real Quilt install (which never has a second fabric-loader jar present) — that's a
-  plausible theory, not something verified here
+- `:quilt:runClient` runs Quilt Loader under plain Fabric Loom, which only knows Fabric Loader. `quilt/build.gradle.kts`
+  patches the gaps: excludes FLK's transitive `fabric-loader` from the runtime classpath (same package, different
+  signer: `SecurityException`), adds quilt-loader's libraries by hand (its POM declares none; they're only in its
+  `quilt_installer.json`), sets the run's main class to Quilt's `KnotClient`, and passes `loader.development`/
+  `loader.classPathGroups` (Quilt ignores Loom's `fabric.*` properties). Bumping `quilt_loader_version` means re-checking
+  that JSON's library list

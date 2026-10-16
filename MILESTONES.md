@@ -425,8 +425,8 @@ Chat runs its own UDP server, which this doesn't touch, so voice is still reacha
   remembers which server Steamed published itself (loopback-only)
 - [x] Mod metadata (version, name, description, authors, license, URLs, contact) now comes from `gradle.properties` and
   is expanded into both `fabric.mod.json`s and `neoforge.mods.toml` at build time. Checked in all three built jars
-- [x] Fabric's `fabric.mod.json` no longer requires Fabric API (nothing imports it), so Fabric players don't need to
-  install it. Fabric Language Kotlin is required at `>=1.13.14` on both Fabric and Quilt, since the code needs the
+- [x] ~~Fabric's `fabric.mod.json` no longer requires Fabric API~~ — wrong, reverted 2026-10-17: Fabric API's resource
+  loader is what loads `assets/steamed`, and this was only checked in a dev run that had it on the classpath anyway. Fabric Language Kotlin is required at `>=1.13.14` on both Fabric and Quilt, since the code needs the
   Kotlin 2.4.20 stdlib
 - [x] `THIRD_PARTY_NOTICES` (steamworks4j's MIT notice, a pointer to Valve's SDK terms for the bundled `steam_api`
   libraries, and weupnp's LGPL, whose full text is already in its jar) ships in every jar next to `LICENSE_steamed`
@@ -569,4 +569,8 @@ not, members fall back to the old timeout), and friends-list "Join Game".
   errors
 - [ ] Backports to more popular versions {26.x, 1.21.x, 1.20.x, 1.16.5}
     - [ ] 1.16.5: normal forge, since NeoForge doesn't support it
-- [ ] Move to Architectury
+- [x] `:quilt:runClient` works (2026-10-17): the signer clash came from FLK's transitive `fabric-loader`, not
+  quilt-loader's. Loaded Steamed with Steam running, title-screen lobby icon renders
+- [x] Fabric API is required again on Fabric and Quilt: without it neither loader registers the mod's resources (the
+  Quilt run showed the lobby button as the missing texture). Quilted Fabric API stops at 1.20.1, so Quilt uses plain
+  Fabric API

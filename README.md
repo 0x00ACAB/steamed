@@ -71,9 +71,9 @@ connection to your world. To Minecraft on both sides it looks like an ordinary l
 |--------------------------|------------------------------------------------------------------------------------------------------|
 | **Minecraft**            | 26.2, Java 25                                                                                        |
 | **Steam**                | The Steam client must be running and signed in, for everyone                                         |
-| **Fabric**               | Fabric Loader 0.19.5+ and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)  |
+| **Fabric**               | Fabric Loader 0.19.5+, [Fabric API](https://modrinth.com/mod/fabric-api) and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) |
 | **NeoForge**             | NeoForge 26.2, nothing else (Kotlin is bundled)                                                      |
-| **Quilt** (experimental) | Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
+| **Quilt** (experimental) | Fabric API (the regular one; Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
 
 Everyone in a lobby needs the same version of Steamed.
 
