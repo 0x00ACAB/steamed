@@ -18,6 +18,8 @@ Client-side Fabric + NeoForge mod that lets players host and join Minecraft worl
 - `./gradlew build` builds every module, including `common` on its own (harmless — it can build standalone since it also applies `net.neoforged.moddev` for its own compile-time Minecraft access). `./gradlew :fabric:build` / `:neoforge:build` / `:quilt:build` builds just one platform's jar
 - `./gradlew :fabric:runClient` / `:neoforge:runClient` launches a dev client for that loader (the Steam client must be running). NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs are fast. `:quilt:runClient` does **not** work — see Gotchas. `runClient` always needs a specific `:module` target — there's no meaningful root-level one
 
+GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag `v<mod_version>` (it must match `gradle.properties`, or the build fails) also publishes a GitHub pre-release with the jars; release immutability is on, so the job drafts, attaches, then publishes
+
 `./gradlew :common:test` runs the unit tests (JUnit 5 via `kotlin("test")`, in `common/src/test`, also part of `build` and CI). They cover pure logic only, pulled into small `internal` objects (`net/WebMapConfig.kt`, `net/VoicePorts.kt`, `net/WebMapList.kt`); anything touching Steam or Minecraft at runtime still needs a dev client.
 
 ## Layout
