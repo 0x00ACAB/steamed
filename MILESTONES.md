@@ -186,10 +186,10 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 **Needs a live test**: whether Steam delivers the `steamed:close` message when it's sent right before `leaveLobby` (if not, members fall back to the old timeout), and friends-list "Join Game".
 
 ### Invites need accepting
-- [x] **Fixed: an invite used to join the lobby, and so the host's world, without the invited player doing anything.** `onLobbyInvite` called `joinLobby` directly. It now only records the invite (`Steamed.pendingInvite`, latest one wins), shows a toast and a chat line, and the Steam Lobby screen offers Accept/Decline. Steam's own "Join Game" / accept in the friends list (`onGameLobbyJoinRequested`) still joins straight away, since the player clicked it. Found in a two-computer test, 2026-10-16
+- [x] **Fixed: an invitation used to join the lobby, and so the host's world, without the invited player doing anything.** `onLobbyInvite` called `joinLobby` directly. It now only records the invite (`Steamed.pendingInvite`, latest one wins), shows a toast and a chat line, and the Steam Lobby screen offers Accept/Decline. Steam's own "Join Game" / accept in the friends list (`onGameLobbyJoinRequested`) still joins straight away, since the player clicked it. Found in a two-computer test, 2026-10-16
 - [x] Verified in a Fabric dev client with a fake invite: toast, chat line, and the Accept/Decline row on the lobby screen
 
-### Joining friends without an invite
+### Joining friends without an invitation
 - [x] Outside a lobby, the Steam Lobby screen lists the Steamed lobbies Steam friends are in (`FriendLobbies`, via `getFriendGamePlayed` and `requestLobbyData`), with the friends' heads, the world name and a Join button. A pending invite is a row in the same list
 - [x] Hosts tag their lobby with `steamed` (mod version) and `visibility`. Lobbies without the tag (other app 480 games) and invite-only ones aren't listed. A host on another Steamed version is shown in red with Join disabled, since the handshake isn't versioned and a mixed-version join would just time out
 - [x] Verified in a Fabric dev client: the tags are set on a real lobby; the empty, invite, joinable and version-mismatch rows render (with test data)
@@ -246,3 +246,5 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 ### M10 followups
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
 - [x] Re-ran `:neoforge:runClient` (2026-10-16) with Steam running: NeoForge loaded the templated `neoforge.mods.toml`, `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed errors
+- [ ] Backports to more popular versions {26.x, 1.21.x, 1.20.x, 1.16.5}
+  - [ ] 1.16.5: normal forge, since NeoForge doesn't support it

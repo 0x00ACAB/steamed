@@ -11,6 +11,6 @@ class SteamedQuilt : ModInitializer, ClientModInitializer {
     }
 
     override fun onInitializeClient() {
-        logger.info("init steamworks client")
+        logger.info("init Steamworks client")
     }
 }
