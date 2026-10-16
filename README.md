@@ -1,50 +1,92 @@
+<div align="center">
+
+<img src="common/src/main/resources/assets/steamed/icon.png" alt="Steamed icon: a pixel-art grass block with steam rising from it" width="128" height="128">
+
 # Steamed
 
-A client-side Fabric + NeoForge (and experimental Quilt) mod that lets players host and join Minecraft worlds through Steam lobbies, using Steamworks (via steamworks4j) for matchmaking and Steam's own P2P relay for the connection — no port forwarding needed.
+**Host your Minecraft world through a Steam lobby and play with your Steam friends.**
+No port forwarding, no third-party tunnels: connections go through Steam's own peer-to-peer relay.
 
-Steam from the steamed craft we're having.
+<sub><i>Steam from the steamed craft we're having.</i></sub>
 
-## Status
+![Minecraft 26.2](https://img.shields.io/badge/Minecraft-26.2-62B47A?style=flat-square)
+![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4?style=flat-square)
+![NeoForge](https://img.shields.io/badge/loader-NeoForge-D7742F?style=flat-square)
+![Status: beta](https://img.shields.io/badge/status-beta-E0A030?style=flat-square)
+![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey?style=flat-square)
 
-Hosting and joining both work: create a friends-only or invite-only lobby from the pause menu or title screen, invite friends from the in-game picker, and Steamed publishes your integrated server and tunnels invited friends' connections over Steam P2P automatically. See `MILESTONES.md` for the full roadmap and known issues.
+</div>
+
+## Quick start
+
+1. Install Steamed (everyone who wants to play needs it) and make sure **Steam is running**
+2. Load a world, open the pause menu and click **Steam Lobby**
+3. Click **Create Lobby**, then **Invite** and pick a friend from the in-game friend list
+4. Your friend accepts the invite and joins your world automatically
+
+## Features
+
+- **No port forwarding.** Works behind NAT, CGNAT and routers without UPnP. Steam connects you directly when it can and relays the traffic when it can't
+- **Only the people you invite.** Lobbies are friends-only or invite-only. Every joiner proves who they are with a Steam auth ticket before they can reach your world, and your world isn't opened to your LAN while you host through Steam
+- **Lobby management.** Kick players, leave the lobby, and everyone is disconnected cleanly when the host closes it
+- **Voice chat comes along.** [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) and [Plasmo Voice](https://modrinth.com/plugin/plasmo-voice) are tunnelled over Steam too, with no extra setup
+- **Works without the Steam overlay.** Invites use an in-game friend picker, so they work even when the overlay doesn't show up in Minecraft
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph Host
+        W[Your world<br/>loopback only]
+        H[Steamed]
+    end
+    subgraph Joiner
+        J[Steamed]
+        C[Minecraft client]
+    end
+    W <--> H
+    H <-- "Steam P2P<br/>(direct or relayed)" --> J
+    J <--> C
+```
+
+When you create a lobby, Steamed opens your world on a local-only port and advertises your Steam ID in the lobby. A friend who joins sends a Steam auth ticket over Steam's P2P network. Once Steam validates it, Steamed bridges their connection to your world. To Minecraft on both sides it looks like an ordinary local connection.
 
 ## Requirements
 
-- The Steam client must be running to use any Steam features (dev client included)
-- Minecraft 26.2, Java 25, and everyone in the lobby needs the same version of Steamed installed
-- **Fabric**: Fabric Loader 0.19.5+ and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
-- **NeoForge**: NeoForge 26.2; no other dependencies (Kotlin is bundled)
-- **Quilt** (experimental, less tested): Fabric Language Kotlin **1.13.14+kotlin.2.4.20** specifically, unless you're on a Quilt Loader 0.30.2 beta or newer. Fabric Language Kotlin 1.14.x requires `fabricloader` 0.19.5, and stable Quilt Loader (0.30.1) only provides 0.19.3, so Quilt refuses to load it. 1.13.14 ships the same Kotlin version and works with it
+| | |
+|---|---|
+| **Minecraft** | 26.2, Java 25 |
+| **Steam** | The Steam client must be running and signed in, for everyone |
+| **Fabric** | Fabric Loader 0.19.5+ and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) |
+| **NeoForge** | NeoForge 26.2, nothing else (Kotlin is bundled) |
+| **Quilt** (experimental) | Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
 
-## Spacewar (app ID 480) limitations
+Everyone in a lobby needs the same version of Steamed.
 
-Steamed doesn't have its own Steam app ID, so it borrows Spacewar, Valve's public test app. Things that follow from that:
+## Good to know
 
-- Your Steam friends will see you as "playing Spacewar" while Minecraft is running with Steamed, and the playtime counts towards Spacewar
-- Every developer testing against app 480 shares the same lobby space. Steamed lobbies are friends-only or invite-only, so strangers can't join them
-- Use Steamed's in-game invite and lobby screens. Steam's own "Join Game" / "Invite to Game" from the friends list is tied to app 480, so it can't launch Minecraft for you; if Minecraft is already running with Steamed, "Join Game" should join the friend's lobby
-- The Steam overlay generally won't show in Minecraft (see Linux notes below), so all lobby management is in-game
+Steamed doesn't have its own Steam app yet, so it uses **Spacewar** (app ID 480), Valve's public test app:
 
-## Linux notes
+- Your friends will see you as "playing Spacewar" while Minecraft is running with Steamed
+- Steam's own "Invite to Game" / "Join Game" can't launch Minecraft for you. Use Steamed's in-game screens; if Minecraft is already running with Steamed, "Join Game" does work
+- Lobbies are friends-only or invite-only, so other people on app 480 can't wander in
 
-Inviting friends uses an in-game friend picker rather than the native Steam overlay invite dialog, so it works even though the Steam overlay itself generally doesn't render for a Minecraft launcher (Prism, MultiMC, the official launcher, etc.) unless that launcher was started as a Non-Steam Game from within the Steam client. That's a platform limitation of how the overlay is injected (`LD_PRELOAD`, set only for processes Steam itself launches), not something the mod can work around by itself. Everything Steamed does — lobby creation, invites, matchmaking — talks to the running Steam client over its regular API and doesn't need the overlay to render at all.
+If you also use **e4mc** or **e4all**, they open a public tunnel to any world that gets published, including one hosted through Steamed. Turn their hosting off if you only want Steam friends to join.
+
+On Linux (and with most launchers anywhere) the Steam overlay won't appear in Minecraft unless the launcher itself was started from Steam. Steamed doesn't need it.
 
 ## Building
 
-```
-./gradlew :fabric:build
-./gradlew :neoforge:build
-```
-
-## Running a dev client
-
-```
-./gradlew :fabric:runClient
-./gradlew :neoforge:runClient
+```sh
+./gradlew build               # every loader
+./gradlew :fabric:build       # or one at a time: :neoforge:build, :quilt:build
+./gradlew :fabric:runClient   # dev client (Steam must be running), also :neoforge:runClient
 ```
 
-NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs are fast.
+Jars end up in `<loader>/build/libs/steamed-<loader>-<version>.jar`. The code lives almost entirely in `common/`, which each loader module compiles in; see [`MILESTONES.md`](MILESTONES.md) for the roadmap and what has and hasn't been tested.
 
 ## License
 
-This project is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+Steamed is released under [CC0-1.0](LICENSE). The jars bundle third-party libraries under their own licenses; see [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+
+Steamed is not affiliated with or endorsed by Valve. Steam and Steamworks are trademarks of Valve Corporation.
