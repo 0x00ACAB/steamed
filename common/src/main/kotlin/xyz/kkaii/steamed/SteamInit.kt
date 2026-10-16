@@ -127,8 +127,8 @@ object SteamInit {
         private val messageCharset: Charset = StandardCharsets.UTF_8
 
         override fun onLobbyInvite(steamIDUser: SteamID, steamIDLobby: SteamID, gameID: Long) {
-            LOGGER.info("Lobby invite received for {} from user {} (game {}), auto-joining", steamIDLobby, steamIDUser.accountID, gameID)
-            Steamed.joinLobby(steamIDLobby)
+            LOGGER.info("Lobby invite received for {} from user {} (game {})", steamIDLobby, steamIDUser.accountID, gameID)
+            Steamed.onLobbyInvite(steamIDLobby, steamIDUser)
         }
 
         override fun onLobbyEnter(

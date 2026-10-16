@@ -7,6 +7,7 @@ import xyz.kkaii.steamed.Steamed
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
@@ -36,6 +37,22 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
 
     override fun init() {
         this.layout.addTitleHeader(this.title, this.font)
+
+        val invite = Steamed.pendingInvite
+        if (!this.isInsideLobby && invite != null) {
+            val contents: LinearLayout = this.layout.addToContents(LinearLayout.vertical().spacing(8))
+            contents.defaultCellSetting().alignHorizontallyCenter()
+            contents.addChild(StringWidget(Component.literal("${invite.inviterName} invited you to their lobby"), this.font))
+            val inviteButtons: LinearLayout = contents.addChild(LinearLayout.horizontal().spacing(4))
+            inviteButtons.addChild(Button.builder(Component.literal("Accept")) { `_` ->
+                Steamed.acceptInvite()
+                this.onClose()
+            }.width(100).build())
+            inviteButtons.addChild(Button.builder(Component.literal("Decline")) { `_` ->
+                Steamed.declineInvite()
+                this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
+            }.width(100).build())
+        }
         val footer: LinearLayout = this.layout.addToFooter(LinearLayout.vertical().spacing(4))
         footer.defaultCellSetting().alignHorizontallyCenter()
         val topFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))

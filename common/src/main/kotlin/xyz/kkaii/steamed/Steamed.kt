@@ -15,6 +15,7 @@ import xyz.kkaii.steamed.net.SvcIntegration
 import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.gui.screens.DisconnectedScreen
 import net.minecraft.client.gui.screens.TitleScreen
@@ -91,6 +92,41 @@ object Steamed {
     // P2P layer instead: SteamNetwork refuses sessions from anyone in here.
     val kickedPeers: MutableSet<SteamID> = ConcurrentHashMap.newKeySet()
 
+    data class Invite(val lobby: SteamID, val inviter: SteamID, val inviterName: String)
+
+    // Invites only notify; joining needs the player to accept in the lobby screen.
+    @Volatile
+    var pendingInvite: Invite? = null
+
+    private val INVITE_TOAST = SystemToast.SystemToastId(10000L)
+
+    fun onLobbyInvite(lobby: SteamID, inviter: SteamID) {
+        if (lobbyId.isSome() && lobbyId.unwrap() == lobby) return
+        val name = friends?.getFriendPersonaName(inviter) ?: "Someone"
+        pendingInvite = Invite(SteamID(lobby), SteamID(inviter), name)
+        val mc = Minecraft.getInstance()
+        mc.execute {
+            SystemToast.addOrUpdate(
+                mc.gui.toastManager(), INVITE_TOAST,
+                Component.literal("$name invited you to a Steam lobby"),
+                Component.literal("Open Steam Lobby to accept")
+            )
+            mc.gui.hud.chat.addClientSystemMessage(
+                Component.literal("$name invited you to their Steam lobby. Open Steam Lobby from the pause or title screen to accept")
+            )
+        }
+    }
+
+    fun acceptInvite() {
+        val invite = pendingInvite ?: return
+        pendingInvite = null
+        joinLobby(invite.lobby)
+    }
+
+    fun declineInvite() {
+        pendingInvite = null
+    }
+
     fun isLobbyOwner(): Boolean =
         lobbyId.isSome() && matchmaking?.getLobbyOwner(lobbyId.unwrap()) == user?.steamID
 
@@ -156,6 +192,7 @@ object Steamed {
             if (lobbyId.unwrap() == lobby) return
             leaveLobby()
         }
+        if (pendingInvite?.lobby == lobby) pendingInvite = null
         lobbyId.some(SteamID(lobby))
         matchmaking?.joinLobby(lobby)
     }
