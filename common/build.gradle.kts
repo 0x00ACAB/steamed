@@ -37,7 +37,7 @@ artifacts {
 
 // Disambiguates common's outgoing variants when both :fabric and :neoforge depend on it
 // with different resolved attributes.
-val loaderAttribute = Attribute.of("gay.git.kai.steamed.loader", String::class.java)
+val loaderAttribute = Attribute.of("xyz.kkaii.steamed.loader", String::class.java)
 listOf("apiElements", "runtimeElements").forEach { variant ->
     configurations.named(variant) {
         attributes { attribute(loaderAttribute, "common") }
