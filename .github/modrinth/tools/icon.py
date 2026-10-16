@@ -17,6 +17,12 @@ glyph = Image.open(io.BytesIO(png)).convert('RGBA')
 # rsvg anti-aliases nothing on this grid, but snap alpha anyway so scaling stays crisp.
 glyph.putalpha(glyph.getchannel('A').point(lambda a: 255 if a >= 128 else 0))
 
+# The glyph sits off-centre in its 24x24 grid (high and to the right), so centre its bounding box.
+box = glyph.getbbox()
+centred = Image.new('RGBA', glyph.size, (0, 0, 0, 0))
+centred.alpha_composite(glyph.crop(box), ((24 - (box[2] - box[0])) // 2, (24 - (box[3] - box[1])) // 2))
+glyph = centred
+
 icon = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
 icon.alpha_composite(glyph.resize((480, 480), Image.NEAREST), (16, 16))
 icon.save(REPO / 'common/src/main/resources/assets/steamed/icon.png')
