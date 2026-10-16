@@ -31,12 +31,3 @@ SOFTWARE.
 The steamworks4j jar in turn contains Valve's Steamworks SDK redistributable
 libraries (steam_api / libsteam_api), which are distributed under the terms of
 the Steamworks SDK Access Agreement: https://partner.steamgames.com/documentation/sdk_access_agreement
-
-================================================================================
-weupnp 0.1.2
-https://github.com/bitletorg/weupnp
-================================================================================
-
-Licensed under the GNU Lesser General Public License (LGPL). The full license
-text ships inside the bundled weupnp jar as license.txt. The jar is bundled
-unmodified; its source is available at the URL above.

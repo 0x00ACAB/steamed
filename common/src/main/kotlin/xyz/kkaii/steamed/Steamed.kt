@@ -10,8 +10,10 @@ import xyz.kkaii.steamed.net.SteamAuthHandshake
 import xyz.kkaii.steamed.net.SteamP2PRelay
 import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
 import xyz.kkaii.steamed.net.PlasmoVoiceIntegration
+import xyz.kkaii.steamed.net.PublicTunnelMods
 import xyz.kkaii.steamed.net.SvcIntegration
 import xyz.kkaii.steamed.screen.SteamLobbyScreen
+import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.gui.screens.DisconnectedScreen
@@ -239,6 +241,17 @@ object Steamed {
 
         matchmaking?.setLobbyGameServer(lobbyId.unwrap(), 0, 0, user!!.steamID)
         mc.gui.hud.chat.addClientSystemMessage(message)
+
+        val tunnels = PublicTunnelMods.installed()
+        if (tunnels.isNotEmpty()) {
+            LOGGER.warn("Public tunnel mods installed alongside Steam hosting: {}", tunnels)
+            mc.gui.hud.chat.addClientSystemMessage(
+                Component.literal(
+                    "${tunnels.joinToString(" and ")} may also have opened this world to the internet. " +
+                        "Turn off its hosting if only your Steam friends should join"
+                ).withStyle(ChatFormatting.GOLD)
+            )
+        }
     }
 
     fun connectToHost(hostSteamId: SteamID) {
