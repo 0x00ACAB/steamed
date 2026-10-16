@@ -92,6 +92,14 @@ object Steamed {
     // P2P layer instead: SteamNetwork refuses sessions from anyone in here.
     val kickedPeers: MutableSet<SteamID> = ConcurrentHashMap.newKeySet()
 
+    // Set once this lobby's world is hosted or joined, so the title screen only leaves the lobby when that world closed.
+    @Volatile
+    var lobbyWorldStarted = false
+
+    fun onTitleScreen() {
+        if (lobbyWorldStarted) leaveLobby()
+    }
+
     data class Invite(val lobby: SteamID, val inviter: SteamID, val inviterName: String)
 
     // Invites only notify; joining needs the player to accept in the lobby screen.
@@ -211,6 +219,7 @@ object Steamed {
         }
 
         lobbyId.some(null)
+        lobbyWorldStarted = false
         SteamPlayers.clear()
         kickedPeers.clear()
         hostedPort = null
@@ -270,6 +279,7 @@ object Steamed {
         }
 
         hostedPort = port
+        lobbyWorldStarted = true
         p2pRelay?.start()
 
         // Joiners learn these from the auth handshake's accepted reply, not from the lobby.
@@ -366,6 +376,7 @@ object Steamed {
             val address = ServerAddress("127.0.0.1", localPort)
             val serverData = ServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort", ServerData.Type.LAN)
             val parent = instance.gui.screen() ?: SteamLobbyScreen(null)
+            lobbyWorldStarted = true
             ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
             (instance.gui.screen() as? ConnectScreenAccessor)
                 ?.`steamed$updateStatus`(Component.literal("Establishing connection with $hostName..."))
