@@ -148,6 +148,9 @@ object SteamInit {
                 return
             }
 
+            if (steamIDLobby != null) SteamPlayers.publishSelf(steamIDLobby)
+            SteamPlayers.refresh()
+
             val numMembers: Int = matchmaking?.getNumLobbyMembers(steamIDLobby)!!
             LOGGER.info("  - {} members in lobby", numMembers)
             for (i in 0..<numMembers) {
@@ -163,6 +166,7 @@ object SteamInit {
 
         override fun onLobbyDataUpdate(steamIDLobby: SteamID?, steamIDMember: SteamID, success: Boolean) {
             LOGGER.info("Lobby data update for {} (member={}, success={})", steamIDLobby, steamIDMember.accountID, success)
+            SteamPlayers.refresh()
         }
 
         override fun onLobbyChatUpdate(
@@ -178,6 +182,7 @@ object SteamInit {
             if (steamIDLobby != null && stateChange != SteamMatchmaking.ChatMemberStateChange.Entered) {
                 Steamed.onMemberLeft(steamIDLobby, steamIDUserChanged)
             }
+            SteamPlayers.refresh()
         }
 
         override fun onLobbyChatMessage(

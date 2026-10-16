@@ -185,6 +185,11 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 
 **Needs a live test**: whether Steam delivers the `steamed:close` message when it's sent right before `leaveLobby` (if not, members fall back to the old timeout), and friends-list "Join Game".
 
+### Steam marker on nametags
+- [x] Players who joined through Steam P2P get an orange diamond left of their nametag, so a host playing with LAN and Steam players at once can tell them apart. Each lobby member publishes its Minecraft UUID as lobby member data (`mc_uuid`); `SteamPlayers` collects the UUIDs of every member except the lobby owner, refreshed on lobby enter, member data updates and member changes, and cleared on leave. `AvatarRendererMixin` prefixes the name tag with a glyph from the `steamed:nametag` bitmap font
+- [x] Verified in a Fabric dev client (2026-10-16) with two mannequins, one whose UUID was seeded into `SteamPlayers`: only that one got the diamond. NeoForge launches to the title screen with the mixin applied and no errors
+- Only lobby members see the marker, since only they can read the lobby's member data. A LAN player isn't in the lobby, so sees nothing even with Steamed installed. The UUIDs are self-reported, so a lobby member could put the marker on someone else; it's cosmetic
+
 ## Planned
 
 ### M6: Lobby management
@@ -208,6 +213,10 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [x] Essential: its `publishServer`-related mixins are compiled out for 26.2 (`unpublishServer` exists now). No conflict found
 - [x] mcwifipnp: only acts through its own Open-to-LAN screen. No conflict
 - World Host, Custom LAN, LAN Server Properties, OpenLink, EasyLAN: no 26.2 builds, not checked
+
+### Steam marker followups
+- [ ] Live two-account test: the marker shows on the joiner for the host, and on other joiners
+- [ ] Possibly the same marker in the player list (Tab)
 
 ### M10 followups
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load

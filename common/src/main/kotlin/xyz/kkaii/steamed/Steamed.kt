@@ -172,6 +172,7 @@ object Steamed {
         }
 
         lobbyId.some(null)
+        SteamPlayers.clear()
         kickedPeers.clear()
         hostedPort = null
         hostedVoicePorts = emptyList()
