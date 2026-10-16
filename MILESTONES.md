@@ -201,6 +201,14 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [ ] Live two-account test with a real Simple Voice Chat install and with Plasmo Voice: voice audio actually reaching the other side
 - [ ] Web maps (BlueMap 8100, squaremap / Pl3xMap 8080, all bind `0.0.0.0` and run on an integrated server): would need a joiner-side TCP forward plus an "open map" link, not a transparent tunnel. Not started
 
+### Compatibility with other hosting mods (checked 2026-10-16 against source; 26.2 builds only)
+- [ ] **e4mc (25.9M downloads) and e4all expose a Steam-hosted world publicly.** Both inject at the TAIL of `ServerConnectionListener.startTcpServerListener` and, with their default `hostEnabled = true`, start a public QUIC tunnel for *any* listener, including `startP2PGame`'s loopback-only publish. That bypasses both the loopback bind and the Steam auth gate. No mixin conflict; it's behavioral. Options: stop their session after Steamed's own publish (`link.e4mc.E4mcClient.session`, `link.e4all.E4allClient.session`, by reflection) and say so in chat, or only warn. Not decided
+- [x] PolyPlus: wraps `channel`/`localAddress` in `startTcpServerListener` only while its own EOS P2P listen is pending. No conflict
+- [x] OfflineLAN: sets `usesAuthentication` at the HEAD of `publishServer`, so a host with its offline option on also runs the Steam-hosted world in offline mode. Peers are still Steam-authenticated, so this only drops Minecraft's own account check
+- [x] Essential: its `publishServer`-related mixins are compiled out for 26.2 (`unpublishServer` exists now). No conflict found
+- [x] mcwifipnp: only acts through its own Open-to-LAN screen. No conflict
+- World Host, Custom LAN, LAN Server Properties, OpenLink, EasyLAN: no 26.2 builds, not checked
+
 ### M10 followups
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
 - [x] Re-ran `:neoforge:runClient` (2026-10-16) with Steam running: NeoForge loaded the templated `neoforge.mods.toml`, `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed errors
