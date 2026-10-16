@@ -54,8 +54,9 @@ get a chat link that opens your web map.
 
 - The **Steam client must be running**, signed in, on everyone's computer
 - **Everyone in the lobby needs Steamed installed** (the same version)
-- **Fabric**: [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
+- **Fabric**: [Fabric API](https://modrinth.com/mod/fabric-api) and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
 - **NeoForge**: no other dependencies (Kotlin is bundled)
+- **Quilt** (experimental): [Fabric API](https://modrinth.com/mod/fabric-api) (the regular one, Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20** specifically, unless you're on a Quilt Loader 0.30.2 beta or newer
 
 ## Things to know
 
