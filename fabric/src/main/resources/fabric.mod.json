@@ -18,19 +18,19 @@
 	"entrypoints": {
 		"main": [
 			{
-				"value": "gay.git.kai.steamed.fabric.SteamedFabric",
+				"value": "xyz.kkaii.steamed.fabric.SteamedFabric",
 				"adapter": "kotlin"
 			}
 		],
 		"preLaunch": [
 			{
-				"value": "gay.git.kai.steamed.fabric.SteamPreLaunchFabric",
+				"value": "xyz.kkaii.steamed.fabric.SteamPreLaunchFabric",
 				"adapter": "kotlin"
 			}
 		],
 		"client": [
 			{
-				"value": "gay.git.kai.steamed.fabric.SteamedFabric",
+				"value": "xyz.kkaii.steamed.fabric.SteamedFabric",
 				"adapter": "kotlin"
 			}
 		]

@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "gay.git.kai.steamed.mixin",
+	"package": "xyz.kkaii.steamed.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"ConnectScreenAccessor",

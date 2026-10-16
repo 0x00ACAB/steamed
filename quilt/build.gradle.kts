@@ -34,7 +34,7 @@ repositories {
     }
 }
 
-val loaderAttribute = Attribute.of("gay.git.kai.steamed.loader", String::class.java)
+val loaderAttribute = Attribute.of("xyz.kkaii.steamed.loader", String::class.java)
 listOf("apiElements", "runtimeElements").forEach { variant ->
     configurations.named(variant) {
         attributes { attribute(loaderAttribute, "quilt") }
