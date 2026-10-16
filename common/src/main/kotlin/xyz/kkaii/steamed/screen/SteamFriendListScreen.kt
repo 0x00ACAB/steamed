@@ -3,6 +3,7 @@ package xyz.kkaii.steamed.screen
 import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamID
 import com.mojang.logging.LogUtils
+import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -46,6 +47,14 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
         this.repositionElements()
     }
 
+    private var ticks = 0
+
+    // Rich presence for friends arrives asynchronously after requestFriendRichPresence.
+    override fun tick() {
+        super.tick()
+        if (++ticks % 20 == 0) this.friendList?.children()?.forEach { it.resolveHead() }
+    }
+
     override fun repositionElements() {
         this.layout.arrangeElements()
         this.friendList?.updateSize(this.width, this.layout)
@@ -69,6 +78,7 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
                     val state = friends.getFriendPersonaState(id)
                     if (state == SteamFriends.PersonaState.Offline) continue
 
+                    friends.requestFriendRichPresence(id)
                     this.addEntry(Entry(id, friends.getFriendPersonaName(id), state))
                 }
             }
@@ -79,15 +89,27 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
             var invited = false
                 private set
 
+            private var head: Component? = null
+
+            init {
+                resolveHead()
+            }
+
+            fun resolveHead() {
+                if (head == null) head = SteamPlayers.friendUuid(steamId)?.let { SteamPlayers.head(it) }
+            }
+
             fun markInvited() {
                 invited = true
             }
 
             override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
-                val label = if (invited) "$name (invited)" else "$name - $state"
+                val label = Component.empty()
+                head?.let { label.append(it).append(" ") }
+                label.append(if (invited) "$name (invited)" else "$name - $state")
                 graphics.centeredText(
                     this@SteamFriendListScreen.font,
-                    Component.literal(label),
+                    label,
                     this@FriendSelectionList.width / 2,
                     this.contentYMiddle - 9 / 2,
                     -1

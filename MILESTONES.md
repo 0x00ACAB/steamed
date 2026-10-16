@@ -194,7 +194,9 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [x] The lobby screen's member list shows each member's head (an inline `PlayerSprite` text component, resolved from the `mc_uuid` member data) and marks the host
 - [x] Fixed: the lobby creator never published its `mc_uuid`, because Steam doesn't send the creator a `LobbyEnter`. `onLobbyCreated` publishes it now
 - [x] Verified in a Fabric dev client: the head renders next to the host's name, and the connecting screen shows both its waiting and failed states
-- [ ] Idea: heads in the invite (friend list) screen too, by caching Steam ID to Minecraft UUID for friends seen in lobbies
+- [x] Heads in the invite screen. `SteamPlayers.friendUuid` reads the friend's `mc_uuid` Steam rich presence (every Steamed client sets it on the title screen; friends running Steamed can read it), and falls back to `config/steamed-known-players.properties`, a Steam ID to UUID cache filled whenever a UUID is seen in rich presence or lobby member data. The screen requests each friend's rich presence and re-checks every second
+- [x] Verified in a Fabric dev client with a seeded cache entry: that friend got a head, a friend with no known UUID didn't
+- [ ] Live check of the rich presence path (needs a friend running this build)
 
 ### Steam marker on nametags
 - [x] Players who joined through Steam P2P get an orange diamond left of their nametag, so a host playing with LAN and Steam players at once can tell them apart. Each lobby member publishes its Minecraft UUID as lobby member data (`mc_uuid`); `SteamPlayers` collects the UUIDs of every member except the lobby owner, refreshed on lobby enter, member data updates and member changes, and cleared on leave. `AvatarRendererMixin` prefixes the name tag with a glyph from the `steamed:nametag` bitmap font

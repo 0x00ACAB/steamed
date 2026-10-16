@@ -74,6 +74,8 @@ Steamed doesn't have its own Steam app yet, so it uses **Spacewar** (app ID 480)
 
 If you also use **e4mc** or **e4all**, they open a public tunnel to any world that gets published, including one hosted through Steamed. Turn their hosting off if you only want Steam friends to join.
 
+Steamed shares your Minecraft UUID with your Steam friends (as Steam rich presence and lobby data) so it can show player heads. It remembers the UUIDs it has seen in `config/steamed-known-players.properties`.
+
 On Linux (and with most launchers anywhere) the Steam overlay won't appear in Minecraft unless the launcher itself was started from Steam. Steamed doesn't need it.
 
 ## Building

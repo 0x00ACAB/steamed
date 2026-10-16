@@ -1,5 +1,6 @@
 package xyz.kkaii.steamed.mixin;
 
+import xyz.kkaii.steamed.SteamPlayers;
 import xyz.kkaii.steamed.Steamed;
 import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 import net.minecraft.client.gui.components.PlainTextButton;
@@ -21,6 +22,7 @@ public class TitleScreenMixin extends Screen {
 	public void init(CallbackInfo info) {
 		// Leaves the lobby only if its world was running, so accepting an invite from here doesn't undo itself.
 		Steamed.INSTANCE.onTitleScreen();
+		SteamPlayers.INSTANCE.publishPresence();
 
 		String message = Steamed.friends == null ? "Not logged into Steam" : String.format("Logged in as %s", Steamed.friends.getPersonaName());
 		TitleScreen thisObject = (TitleScreen) (Object) this;
