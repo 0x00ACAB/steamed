@@ -38,7 +38,9 @@ steamworks4j). Progress and plans are in `milestones.md`.
 
 GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag
 `v<mod_version>` (it must match `gradle.properties`, or the build fails) also publishes a GitHub pre-release with the
-jars; release immutability is on, so the job drafts, attaches, then publishes
+jars; release immutability is on, so the job drafts, attaches, then publishes. The same job then uploads one Modrinth version per loader
+(`<version>+<loader>`, beta, GitHub's generated notes as the changelog; Fabric and Quilt require Fabric API and FLK) to
+project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret
 
 `./gradlew :common:test` runs the unit tests (JUnit 5 via `kotlin("test")`, in `common/src/test`, also part of `build`
 and CI). They cover pure logic only, pulled into small `internal` objects (`net/WebMapConfig.kt`, `net/VoicePorts.kt`,

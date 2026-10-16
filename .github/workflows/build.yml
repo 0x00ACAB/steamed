@@ -76,3 +76,33 @@ jobs:
           gh release create "$GITHUB_REF_NAME" jars/*.jar --draft --prerelease --verify-tag \
             --title "Steamed ${GITHUB_REF_NAME#v}" --generate-notes
           gh release edit "$GITHUB_REF_NAME" --draft=false
+
+      - uses: actions/checkout@v7
+        with:
+          path: src
+
+      # One Modrinth version per loader, named like 0.1.3+fabric, with the GitHub release notes as the changelog
+      - name: Publish to Modrinth
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mc="$(sed -n 's/^minecraft_version=//p' src/gradle.properties)"
+          changelog="$(gh release view "$GITHUB_REF_NAME" --json body -q .body)"
+          fabric_deps='[{"project_id":"P7dR8mSH","dependency_type":"required"},{"project_id":"Ha28R6CL","dependency_type":"required"}]'
+          for loader in fabric neoforge quilt; do
+            deps='[]'
+            [ "$loader" != neoforge ] && deps="$fabric_deps"
+            jar="steamed-$loader-$version.jar"
+            data="$(jq -n --arg v "$version+$loader" --arg l "$loader" --arg mc "$mc" --arg c "$changelog" \
+              --arg jar "$jar" --argjson deps "$deps" '{
+                project_id: "SZuvIr1Y", name: "Steamed \($v)", version_number: $v, changelog: $c,
+                version_type: "beta", loaders: [$l], game_versions: [$mc], featured: false,
+                dependencies: $deps, file_parts: [$jar], primary_file: $jar}')"
+            curl --fail-with-body -sS -X POST https://api.modrinth.com/v2/version \
+              -H "Authorization: $MODRINTH_TOKEN" -H "User-Agent: 0x00ACAB/steamed (GitHub Actions)" \
+              --form-string "data=$data" -F "$jar=@jars/$jar;type=application/java-archive"
+            echo
+          done
