@@ -3,7 +3,9 @@ package xyz.kkaii.steamed.screen
 import com.codedisaster.steamworks.SteamMatchmaking
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import com.mojang.logging.LogUtils
+import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
+import net.minecraft.ChatFormatting
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.CycleButton
@@ -17,7 +19,7 @@ import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import org.slf4j.Logger
 
-class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.literal("Lobby")) {
+class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobby")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
     private var kickButton: Button? = null
     private var inviteButton: Button? = null
@@ -27,7 +29,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
     private var isInsideLobby = false
     private var isOwner = false
 
-    private var lobbyMembers: ArrayList<String> = ArrayList()
+    private var lobbyMembers: ArrayList<Component> = ArrayList()
 
     init {
         this.isInsideLobby = Steamed.lobbyId.isSome()
@@ -145,16 +147,19 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         lobbyMembers.clear()
         LOGGER.info("asking steam nicely for the number of lobby members >_<")
 
-        val n = Steamed.matchmaking?.getNumLobbyMembers(Steamed.lobbyId.unwrap())!!
-        for (i in 1..n) {
-            LOGGER.info("on $i of $n")
+        val lobby = Steamed.lobbyId.unwrap()!!
+        val owner = Steamed.matchmaking?.getLobbyOwner(lobby)
+        val n = Steamed.matchmaking?.getNumLobbyMembers(lobby)!!
+        for (i in 0..<n) {
+            val id = Steamed.matchmaking?.getLobbyMemberByIndex(lobby, i)!!
+            val name = Steamed.friends?.getFriendPersonaName(id) ?: "unknown"
+            LOGGER.info("{} (known as {})", id, name)
 
-            val id = Steamed.matchmaking?.getLobbyMemberByIndex(Steamed.lobbyId.unwrap(), i - 1)
-            val name = Steamed.friends?.getFriendPersonaName(id)
-
-            LOGGER.info("$id (known as $name)")
-
-            lobbyMembers.add(name ?: "unknown")
+            val row = Component.empty()
+            SteamPlayers.memberUuid(lobby, id)?.let { row.append(SteamPlayers.head(it)).append(" ") }
+            row.append(name)
+            if (id == owner) row.append(Component.literal(" (host)").withStyle(ChatFormatting.GRAY))
+            lobbyMembers.add(row)
         }
 
     }
@@ -167,9 +172,7 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
                 i++
                 graphics.centeredText(
                     this.font,
-                    Component.literal(
-                        it
-                    ),
+                    it,
                     this.width / 2,
                     50 + 20 * i,
                     -1

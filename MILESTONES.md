@@ -189,6 +189,13 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [x] **Fixed: an invite used to join the lobby, and so the host's world, without the invited player doing anything.** `onLobbyInvite` called `joinLobby` directly. It now only records the invite (`Steamed.pendingInvite`, latest one wins), shows a toast and a chat line, and the Steam Lobby screen offers Accept/Decline. Steam's own "Join Game" / accept in the friends list (`onGameLobbyJoinRequested`) still joins straight away, since the player clicked it. Found in a two-computer test, 2026-10-16
 - [x] Verified in a Fabric dev client with a fake invite: toast, chat line, and the Accept/Decline row on the lobby screen
 
+### Joining feedback and lobby heads
+- [x] `SteamConnectingScreen` ("Joining <host>", "Connecting through Steam" with loading dots, Cancel) is shown while the auth handshake and Steam's NAT traversal run, instead of a chat line. A denial or timeout shows the reason on it with a Back button. Cancel leaves the lobby. Minecraft's own `ConnectScreen` then takes over, with the connecting screen's parent as its parent
+- [x] The lobby screen's member list shows each member's head (an inline `PlayerSprite` text component, resolved from the `mc_uuid` member data) and marks the host
+- [x] Fixed: the lobby creator never published its `mc_uuid`, because Steam doesn't send the creator a `LobbyEnter`. `onLobbyCreated` publishes it now
+- [x] Verified in a Fabric dev client: the head renders next to the host's name, and the connecting screen shows both its waiting and failed states
+- [ ] Idea: heads in the invite (friend list) screen too, by caching Steam ID to Minecraft UUID for friends seen in lobbies
+
 ### Steam marker on nametags
 - [x] Players who joined through Steam P2P get an orange diamond left of their nametag, so a host playing with LAN and Steam players at once can tell them apart. Each lobby member publishes its Minecraft UUID as lobby member data (`mc_uuid`); `SteamPlayers` collects the UUIDs of every member except the lobby owner, refreshed on lobby enter, member data updates and member changes, and cleared on leave. `AvatarRendererMixin` prefixes the name tag with a glyph from the `steamed:nametag` bitmap font
 - [x] Verified in a Fabric dev client (2026-10-16) with two mannequins, one whose UUID was seeded into `SteamPlayers`: only that one got the diamond. NeoForge launches to the title screen with the mixin applied and no errors

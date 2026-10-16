@@ -245,6 +245,8 @@ object SteamInit {
             if (result != SteamResult.OK) return
 
             Steamed.lobbyId.some(steamId)
+            // Steam doesn't send the creator a LobbyEnter, so publish here as well.
+            SteamPlayers.publishSelf(steamId)
 
             val instance: Minecraft = Minecraft.getInstance()
             instance.execute {

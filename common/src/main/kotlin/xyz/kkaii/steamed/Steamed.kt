@@ -12,6 +12,7 @@ import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
 import xyz.kkaii.steamed.net.PlasmoVoiceIntegration
 import xyz.kkaii.steamed.net.PublicTunnelMods
 import xyz.kkaii.steamed.net.SvcIntegration
+import xyz.kkaii.steamed.screen.SteamConnectingScreen
 import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -319,7 +320,9 @@ object Steamed {
 
         val instance: Minecraft = Minecraft.getInstance()
         instance.execute {
-            instance.gui.hud.chat.addClientSystemMessage(Component.literal("Establishing connection with $hostName..."))
+            val current = instance.gui.screen()
+            val parent = if (current is SteamConnectingScreen) current.lastScreen else current
+            instance.setScreenAndShow(SteamConnectingScreen(parent, hostName))
         }
 
         relay.start()
@@ -332,7 +335,12 @@ object Steamed {
             onDenied = { reason ->
                 LOGGER.warn("Host {} refused the connection: {}", hostSteamId.accountID, reason)
                 instance.execute {
-                    instance.gui.hud.chat.addClientSystemMessage(Component.literal("Couldn't join $hostName: $reason"))
+                    val screen = instance.gui.screen()
+                    if (screen is SteamConnectingScreen) {
+                        screen.fail(reason)
+                    } else if (lobbyId.isSome()) {
+                        instance.gui.hud.chat.addClientSystemMessage(Component.literal("Couldn't join $hostName: $reason"))
+                    }
                 }
             },
         )
@@ -375,7 +383,8 @@ object Steamed {
         instance.execute {
             val address = ServerAddress("127.0.0.1", localPort)
             val serverData = ServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort", ServerData.Type.LAN)
-            val parent = instance.gui.screen() ?: SteamLobbyScreen(null)
+            val current = instance.gui.screen()
+            val parent = (if (current is SteamConnectingScreen) current.lastScreen else current) ?: SteamLobbyScreen(null)
             lobbyWorldStarted = true
             ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
             (instance.gui.screen() as? ConnectScreenAccessor)

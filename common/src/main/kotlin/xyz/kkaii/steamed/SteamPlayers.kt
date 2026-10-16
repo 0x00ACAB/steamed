@@ -5,7 +5,9 @@ import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FontDescription
 import net.minecraft.network.chat.Style
+import net.minecraft.network.chat.contents.objects.PlayerSprite
 import net.minecraft.resources.Identifier
+import net.minecraft.world.item.component.ResolvableProfile
 import java.util.UUID
 
 // Players who reached the world through Steam P2P, i.e. lobby members other than the host.
@@ -33,17 +35,20 @@ object SteamPlayers {
             uuids = emptySet()
             return
         }
-        val lobby = Steamed.lobbyId.unwrap()
+        val lobby = Steamed.lobbyId.unwrap() ?: return
         val owner = matchmaking.getLobbyOwner(lobby)
         uuids = (0..<matchmaking.getNumLobbyMembers(lobby))
             .map { matchmaking.getLobbyMemberByIndex(lobby, it) }
             .filter { it != owner }
-            .mapNotNull { member ->
-                matchmaking.getLobbyMemberData(lobby, member, UUID_KEY)
-                    ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-            }
+            .mapNotNull { memberUuid(lobby, it) }
             .toSet()
     }
+
+    fun memberUuid(lobby: SteamID, member: SteamID): UUID? =
+        Steamed.matchmaking?.getLobbyMemberData(lobby, member, UUID_KEY)
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+    fun head(uuid: UUID): Component = Component.`object`(PlayerSprite(ResolvableProfile.createUnresolved(uuid), true))
 
     fun clear() {
         uuids = emptySet()
