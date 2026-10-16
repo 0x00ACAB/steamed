@@ -8,6 +8,7 @@
 		"IntegratedServerMixin",
 		"PauseMenuMixin",
 		"PlayerTabOverlayMixin",
+		"SplashManagerMixin",
 		"TitleScreenMixin"
 	],
 	"injectors": {
