@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 // Finds web map mods whose built-in web server joiners could use through the Steam tunnel.
+// Pl3xMap isn't here: its Fabric build only starts on a dedicated server, never in singleplayer.
 object WebMapIntegration {
     private val logger: Logger = LoggerFactory.getLogger("WebMapIntegration")
 
@@ -21,7 +22,6 @@ object WebMapIntegration {
     private val candidates = listOf(
         Candidate("BlueMap", gameDir.resolve("config/bluemap/webserver.conf"), ::readHocon),
         Candidate("squaremap", gameDir.resolve("squaremap/config.yml"), ::readInternalWebserver),
-        Candidate("Pl3xMap", gameDir.resolve("config/pl3xmap/config.yml"), ::readInternalWebserver),
     )
 
     fun detect(): List<WebMap> = candidates.mapNotNull { candidate ->
@@ -66,7 +66,7 @@ object WebMapIntegration {
         return (values["enabled"] != "false") to port
     }
 
-    // squaremap and Pl3xMap: `enabled` and `port` under `internal-webserver:`.
+    // squaremap: `enabled` and `port` under `internal-webserver:`.
     private fun readInternalWebserver(lines: List<String>): Pair<Boolean, Int>? {
         val start = lines.indexOfFirst { it.trim() == "internal-webserver:" }
         if (start < 0) return null
