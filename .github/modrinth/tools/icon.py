@@ -1,6 +1,7 @@
 """Renders the mod icon from Pixelarticons' "tea" glyph (MIT, see third_party/pixelarticons/LICENSE) in Steamed's orange.
 
-Writes common/src/main/resources/assets/steamed/icon.png (512x512) and icons/icon-24.png. Needs rsvg-convert.
+Writes common/src/main/resources/assets/steamed/icon.png (512x512), images/icon-24.png, and the title screen
+button's sprites (20x20, normal and highlighted). Needs rsvg-convert.
 """
 import io
 import subprocess
@@ -10,6 +11,7 @@ from PIL import Image
 PAGE = Path(__file__).resolve().parent.parent
 REPO = PAGE.parents[1]
 ORANGE = '#FF9920'
+HIGHLIGHT = (255, 200, 112)
 
 svg = (PAGE / 'third_party/pixelarticons/tea.svg').read_text().replace('currentColor', ORANGE)
 png = subprocess.run(['rsvg-convert', '-w', '24', '-h', '24'], input=svg.encode(), capture_output=True, check=True).stdout
@@ -28,3 +30,14 @@ icon.alpha_composite(glyph.resize((480, 480), Image.NEAREST), (16, 16))
 icon.save(REPO / 'common/src/main/resources/assets/steamed/icon.png')
 (PAGE / 'images').mkdir(exist_ok=True)
 glyph.save(PAGE / 'images/icon-24.png')
+
+# Title screen button: the 18x20 glyph at 1:1 on a 20x20 canvas, plus a lighter copy for hover/focus.
+sprites = REPO / 'common/src/main/resources/assets/steamed/textures/gui/sprites/menu'
+sprites.mkdir(parents=True, exist_ok=True)
+trimmed = glyph.crop(glyph.getbbox())
+button = Image.new('RGBA', (20, 20), (0, 0, 0, 0))
+button.alpha_composite(trimmed, ((20 - trimmed.width) // 2, (20 - trimmed.height) // 2))
+button.save(sprites / 'lobby.png')
+light = Image.new('RGBA', button.size, HIGHLIGHT + (255,))
+light.putalpha(button.getchannel('A'))
+light.save(sprites / 'lobby_highlighted.png')

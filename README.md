@@ -23,7 +23,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 1. Install Steamed (everyone who wants to play needs it) and make sure **Steam is running**
 2. Load a world, open the pause menu and click **Steam Lobby**
 3. Click **Create Lobby**, then **Invite** and pick a friend from the in-game friend list
-4. Your friend accepts the invite and joins your world automatically
+4. Your friend clicks the orange mug next to **Multiplayer** on their title screen (or opens **Steam Lobby** from the pause menu) and clicks **Accept**, or **Join** next to your name
 
 ## Features
 
