@@ -31,4 +31,13 @@ tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {
 tasks.named<ProcessResources>("processResources") {
     dependsOn(configurations["commonResources"])
     from(configurations["commonResources"])
+
+    val metadata = listOf(
+        "mod_version", "mod_name", "mod_description", "mod_authors",
+        "mod_license", "mod_sources_url", "mod_issues_url", "mod_contact_email",
+    ).associateWith { providers.gradleProperty(it).get() }
+    inputs.properties(metadata)
+    filesMatching(listOf("fabric.mod.json", "META-INF/neoforge.mods.toml")) {
+        expand(metadata)
+    }
 }
