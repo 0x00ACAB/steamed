@@ -1,35 +1,42 @@
 package xyz.kkaii.steamed.screen
 
+import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamMatchmaking
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import com.mojang.logging.LogUtils
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
 import net.minecraft.ChatFormatting
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.ContainerObjectSelectionList
 import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.PlayerFaceExtractor
 import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.components.Tooltip
+import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
+import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.util.ARGB
+import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
 
 class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobby")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
-    private var kickButton: Button? = null
     private var inviteButton: Button? = null
     private var createLobby: Button? = null
     private var joinButton: Button? = null
+    private var memberList: MemberList? = null
 
     private var isInsideLobby = false
     private var isOwner = false
-
-    private var lobbyMembers: ArrayList<Component> = ArrayList()
 
     init {
         this.isInsideLobby = Steamed.lobbyId.isSome()
@@ -41,7 +48,9 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         this.layout.addTitleHeader(this.title, this.font)
 
         val invite = Steamed.pendingInvite
-        if (!this.isInsideLobby && invite != null) {
+        if (this.isInsideLobby) {
+            this.memberList = this.layout.addToContents(MemberList(this.minecraft))
+        } else if (invite != null) {
             val contents: LinearLayout = this.layout.addToContents(LinearLayout.vertical().spacing(8))
             contents.defaultCellSetting().alignHorizontallyCenter()
             contents.addChild(StringWidget(Component.literal("${invite.inviterName} invited you to their lobby"), this.font))
@@ -90,26 +99,16 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             }
             topFooterButtons.addChild(Button.builder(Component.literal("Leave Lobby"), { `_` -> leaveLobby() })
                 .width(if (this.isOwner) 230 else 113).build())
-        }
 
-        if (this.isInsideLobby) {
             this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
                 this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
-            }).width(74).build())
-
-            this.kickButton =
-                bottomFooterButtons.addChild(Button.builder(Component.literal("Kick"), { `_` ->
-                    this.minecraft.setScreenAndShow(SteamKickScreen(this))
-                }).width(74).build())
-
-            if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
-
-            val members = Steamed.matchmaking?.getNumLobbyMembers(Steamed.lobbyId.unwrap()) ?: 0
-            if (this.isOwner && members <= 1) disableButtons("There are no players in the lobby", this.kickButton)
+            }).width(113).build())
+            if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton)
         }
 
         bottomFooterButtons.addChild(
-            Button.builder(CommonComponents.GUI_BACK, { `_` -> this.onClose() }).width(74).build()
+            Button.builder(CommonComponents.GUI_BACK, { `_` -> this.onClose() })
+                .width(if (this.isInsideLobby) 113 else 74).build()
         )
         this.layout.visitWidgets(this::addRenderableWidget)
         this.repositionElements()
@@ -132,59 +131,16 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         }
     }
 
-    // Starts one short of the refresh interval so the member list fills on the first tick.
-    var ticks = 99
+    private var ticks = 0
 
     override fun tick() {
         super.tick()
-
-        ticks++
-        if (ticks < 100) return
-        ticks = 0
-
-        if (!Steamed.lobbyId.isSome()) return
-
-        lobbyMembers.clear()
-        LOGGER.info("asking steam nicely for the number of lobby members >_<")
-
-        val lobby = Steamed.lobbyId.unwrap()!!
-        val owner = Steamed.matchmaking?.getLobbyOwner(lobby)
-        val n = Steamed.matchmaking?.getNumLobbyMembers(lobby)!!
-        for (i in 0..<n) {
-            val id = Steamed.matchmaking?.getLobbyMemberByIndex(lobby, i)!!
-            val name = Steamed.friends?.getFriendPersonaName(id) ?: "unknown"
-            LOGGER.info("{} (known as {})", id, name)
-
-            val row = Component.empty()
-            SteamPlayers.memberUuid(lobby, id)?.let { row.append(SteamPlayers.head(it)).append(" ") }
-            row.append(name)
-            if (id == owner) row.append(Component.literal(" (host)").withStyle(ChatFormatting.GRAY))
-            lobbyMembers.add(row)
-        }
-
-    }
-
-    override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
-        super.extractRenderState(graphics, mouseX, mouseY, a)
-        if (Steamed.lobbyId.isSome()) {
-            var i = 0
-            this.lobbyMembers.forEach {
-                i++
-                graphics.centeredText(
-                    this.font,
-                    it,
-                    this.width / 2,
-                    50 + 20 * i,
-                    -1
-                )
-            }
-
-
-        }
+        if (++ticks % 20 == 0) this.memberList?.refresh()
     }
 
     override fun repositionElements() {
         this.layout.arrangeElements()
+        this.memberList?.updateSize(this.width, this.layout)
     }
 
     override fun onClose() {
@@ -203,8 +159,99 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         return false
     }
 
+    private inner class MemberList(minecraft: Minecraft) : ContainerObjectSelectionList<MemberList.Entry>(
+        minecraft, this@SteamLobbyScreen.width, this@SteamLobbyScreen.height - 33 - 60, 33, 36
+    ) {
+        private var members: List<SteamID> = emptyList()
+
+        init {
+            refresh()
+        }
+
+        fun refresh() {
+            val matchmaking = Steamed.matchmaking ?: return
+            if (!Steamed.lobbyId.isSome()) return
+            val lobby = Steamed.lobbyId.unwrap()!!
+            val current = (0..<matchmaking.getNumLobbyMembers(lobby)).map { matchmaking.getLobbyMemberByIndex(lobby, it) }
+            if (current != members) {
+                members = current
+                val owner = matchmaking.getLobbyOwner(lobby)
+                // Host first, then everyone else in Steam's order.
+                this.replaceEntries(current.sortedBy { it != owner }.map { Entry(lobby, it, it == owner) })
+            } else {
+                this.children().forEach { it.resolveHead() }
+            }
+        }
+
+        override fun getRowWidth(): Int = 260
+
+        inner class Entry(private val lobby: SteamID, val steamId: SteamID, private val isHost: Boolean) :
+            ContainerObjectSelectionList.Entry<Entry>() {
+            private val name: String = Steamed.friends?.getFriendPersonaName(steamId) ?: "unknown"
+            private val isSelf = steamId == Steamed.user?.steamID
+            private var head: ResolvableProfile? = null
+            private var kicked = Steamed.kickedPeers.contains(steamId)
+            private val kickButton: Button? =
+                if (this@SteamLobbyScreen.isOwner && !isSelf) {
+                    Button.builder(Component.literal("Kick")) { button ->
+                        Steamed.kick(steamId)
+                        kicked = true
+                        button.active = false
+                        LOGGER.info("Kicked {} from the lobby", name)
+                    }.width(40).build().also { it.active = !kicked }
+                } else null
+            private val widgets: List<AbstractWidget> = listOfNotNull(kickButton)
+
+            init {
+                resolveHead()
+            }
+
+            fun resolveHead() {
+                if (head == null) head = SteamPlayers.memberUuid(lobby, steamId)?.let { ResolvableProfile.createUnresolved(it) }
+            }
+
+            private fun status(): Component? = when {
+                kicked -> Component.literal("Kicked").withStyle(ChatFormatting.RED)
+                isHost && isSelf -> Component.literal("Host (you)")
+                isHost -> Component.literal("Host")
+                isSelf -> Component.literal("You")
+                else -> null
+            }
+
+            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
+                graphics.fill(this.contentX, this.contentY, this.contentRight, this.contentBottom, BG_FILL)
+                val faceX = this.contentX + 4
+                val faceY = this.contentY + (this.contentHeight - 24) / 2
+                head?.let { PlayerFaceExtractor.extractRenderState(graphics, it, faceX, faceY, 24) }
+
+                val textX = faceX + 24 + 4
+                val status = status()
+                val font = this@SteamLobbyScreen.font
+                if (status == null) {
+                    graphics.text(font, name, textX, this.contentY + (this.contentHeight - 9) / 2, -1)
+                } else {
+                    val textY = this.contentY + (this.contentHeight - 18) / 2
+                    graphics.text(font, name, textX, textY, -1)
+                    graphics.text(font, status, textX, textY + 12, STATUS_COLOR)
+                }
+
+                kickButton?.let {
+                    it.setX(this.contentRight - it.width - 4)
+                    it.setY(this.contentY + (this.contentHeight - it.height) / 2)
+                    it.extractRenderState(graphics, mouseX, mouseY, a)
+                }
+            }
+
+            override fun children(): List<GuiEventListener> = widgets
+
+            override fun narratables(): List<NarratableEntry> = widgets
+        }
+    }
+
     companion object {
         private val LOGGER: Logger = LogUtils.getLogger()
+        private val BG_FILL = ARGB.color(255, 74, 74, 74)
+        private val STATUS_COLOR = ARGB.color(140, 255, 255, 255)
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly
 

@@ -193,6 +193,7 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 - [x] `SteamConnectingScreen` ("Joining <host>", "Connecting through Steam" with loading dots, Cancel) is shown while the auth handshake and Steam's NAT traversal run, instead of a chat line. A denial or timeout shows the reason on it with a Back button. Cancel leaves the lobby. Minecraft's own `ConnectScreen` then takes over, with the connecting screen's parent as its parent
 - [x] The lobby screen's member list shows each member's head (an inline `PlayerSprite` text component, resolved from the `mc_uuid` member data) and marks the host
 - [x] Fixed: the lobby creator never published its `mc_uuid`, because Steam doesn't send the creator a `LobbyEnter`. `onLobbyCreated` publishes it now
+- [x] The lobby screen's members are now a scrollable list in the style of Social Interactions: 24px face, name, a "Host"/"You"/"Kicked" line, and a Kick button on each row for the host. `SteamKickScreen` is gone. The list refreshes every second and only rebuilds when membership changes
 - [x] Verified in a Fabric dev client: the head renders next to the host's name, and the connecting screen shows both its waiting and failed states
 - [x] Heads in the invite screen. `SteamPlayers.friendUuid` reads the friend's `mc_uuid` Steam rich presence (every Steamed client sets it on the title screen; friends running Steamed can read it), and falls back to `config/steamed-known-players.properties`, a Steam ID to UUID cache filled whenever a UUID is seen in rich presence or lobby member data. The screen requests each friend's rich presence and re-checks every second
 - [x] Verified in a Fabric dev client with a seeded cache entry: that friend got a head, a friend with no known UUID didn't
@@ -229,7 +230,7 @@ From a survey of every Modrinth mod with 100K+ downloads (6,149 on 2026-10-16), 
 
 ### Steam marker followups
 - [ ] Live two-account test: the marker shows on the joiner for the host, and on other joiners
-- [ ] Possibly the same marker in the player list (Tab)
+- [x] The same marker in the Tab player list (`PlayerTabOverlayMixin` on `getNameForDisplay`, so the list width accounts for it). Verified in a Fabric dev client with a seeded UUID
 
 ### M10 followups
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
