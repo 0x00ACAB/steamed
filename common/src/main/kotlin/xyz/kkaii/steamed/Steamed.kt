@@ -126,14 +126,18 @@ object Steamed {
         val name = friends?.getFriendPersonaName(inviter) ?: "Someone"
         pendingInvite = Invite(SteamID(lobby), SteamID(inviter), name)
         val mc = Minecraft.getInstance()
+        val inLobby = lobbyId.isSome()
         mc.execute {
             SystemToast.addOrUpdate(
                 mc.gui.toastManager(), INVITE_TOAST,
                 Component.literal("$name invited you to a Steam lobby"),
-                Component.literal("Open Steam Lobby to accept")
+                Component.literal(if (inLobby) "Leave your lobby to accept" else "Open Steam Lobby to accept")
             )
             mc.gui.hud.chat.addClientSystemMessage(
-                Component.literal("$name invited you to their Steam lobby. Open Steam Lobby from the pause or title screen to accept")
+                Component.literal(
+                    if (inLobby) "$name invited you to their Steam lobby. Leave your current lobby, then accept from Steam Lobby"
+                    else "$name invited you to their Steam lobby. Open Steam Lobby from the pause or title screen to accept"
+                )
             )
         }
     }
@@ -303,8 +307,10 @@ object Steamed {
         hostedVoicePorts = listOfNotNull(SvcIntegration.detectPort(), PlasmoVoiceIntegration.detectPort()).distinct()
         LOGGER.info("Tunneling voice ports: {}", hostedVoicePorts)
         thread(name = "steamed-web-map-detect", isDaemon = true) {
-            hostedWebMaps = WebMapIntegration.detect()
-            LOGGER.info("Web maps for joiners: {}", hostedWebMaps)
+            val maps = WebMapIntegration.detect()
+            // Leaving the lobby while this ran clears hostedPort; don't bring the maps back after that.
+            if (hostedPort == port) hostedWebMaps = maps
+            LOGGER.info("Web maps for joiners: {}", maps)
         }
 
         matchmaking?.setLobbyGameServer(lobbyId.unwrap(), 0, 0, user!!.steamID)
