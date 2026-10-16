@@ -8,9 +8,14 @@ Sources for the description on [modrinth.com/mod/steamedmc](https://modrinth.com
 | `cdn-urls.json` | Where each image lives on Modrinth's CDN |
 | `images/` | The published images |
 | `fonts/` | Pixelify Sans (SIL Open Font License, see `fonts/OFL.txt`), used for the headlines |
+| `third_party/pixelarticons/` | The "tea" glyph the icon is made from, and its MIT license |
 | `tools/` | Scripts to regenerate everything |
 
 Needs Python 3 with Pillow.
+
+## Change the icon
+
+`python3 tools/icon.py` renders `third_party/pixelarticons/tea.svg` in Steamed's orange into the mod's `icon.png` and `images/icon-24.png` (needs `rsvg-convert`). Then `python3 tools/build.py` for the page banner and `python3 tools/social.py` for `.github/social-preview.png`.
 
 ## Change the text only
 

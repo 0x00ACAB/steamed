@@ -64,4 +64,4 @@ squaremap defaults to port 8080, which the Steam client already uses on your com
 
 If you also use **e4mc** or **e4all**, they will open a public tunnel to any world that's published, including one hosted through Steamed. Steamed warns you in chat; turn off their hosting if you only want Steam friends to join.
 
-The screenshots use example players. Steamed is not affiliated with or endorsed by Valve. Steam and Steamworks are trademarks of Valve Corporation. Headlines are set in [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) (SIL Open Font License).
+The screenshots use example players. Steamed is not affiliated with or endorsed by Valve. Steam and Steamworks are trademarks of Valve Corporation. Headlines are set in [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) (SIL Open Font License). The icon is the "tea" glyph from [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT).

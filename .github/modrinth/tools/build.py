@@ -5,11 +5,10 @@ from headline import headline
 
 HERE = Path(__file__).resolve().parent
 PAGE = HERE.parent
-REPO = PAGE.parents[1]
 RAW = PAGE / 'raw'
 OUT = PAGE / 'images'
 FONT = PAGE / 'fonts' / 'PixelifySans[wght].ttf'
-ICON = REPO / 'common/src/main/resources/assets/steamed/icon.png'
+ICON = PAGE / 'images' / 'icon-24.png'  # from tools/icon.py
 
 GREEN = (108, 192, 74)
 BLUE = (77, 142, 240)
@@ -27,7 +26,7 @@ def headlines():
     ]:
         headline(lines, color, FONT, 96, OUT / f'{name}.png', shadow=SHADOW)
 
-    icon = Image.open(ICON).convert('RGBA').resize((240, 240), Image.NEAREST)
+    icon = Image.open(ICON).convert('RGBA').resize((240, 240), Image.NEAREST)  # exactly x10
     top = headline(["YOUR WORLD."], GREEN, FONT, 104, shadow=SHADOW)
     bottom = headline(["YOUR STEAM FRIENDS."], ORANGE, FONT, 104, shadow=SHADOW)
     w = 240 + 36 + max(top.width, bottom.width)

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="common/src/main/resources/assets/steamed/icon.png" alt="Steamed icon: a pixel-art grass block with steam rising from it" width="128" height="128">
+<img src="common/src/main/resources/assets/steamed/icon.png" alt="Steamed icon: an orange pixel-art mug with steam rising from it" width="128" height="128">
 
 # Steamed
 
@@ -94,6 +94,6 @@ Jars end up in `<loader>/build/libs/steamed-<loader>-<version>.jar`. The code li
 
 ## License
 
-Steamed is released under [CC0-1.0](LICENSE). The jars bundle third-party libraries under their own licenses; see [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+Steamed is released under [CC0-1.0](LICENSE). The jars bundle third-party libraries under their own licenses; see [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES). The icon is the "tea" glyph from [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT), recoloured.
 
 Steamed is not affiliated with or endorsed by Valve. Steam and Steamworks are trademarks of Valve Corporation.
