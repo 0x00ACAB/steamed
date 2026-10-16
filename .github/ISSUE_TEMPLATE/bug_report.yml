@@ -1,0 +1,57 @@
+name: Bug report
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The more of this you can fill in, the faster it can be fixed.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Were you hosting or joining?
+      options:
+        - Hosting
+        - Joining
+        - Both / not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: loader
+    attributes:
+      label: Loader
+      options:
+        - Fabric
+        - NeoForge
+        - Quilt
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Steamed, Minecraft and loader versions.
+      placeholder: Steamed 0.1.0, Minecraft 26.2, Fabric Loader 0.19.5
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and launcher
+      placeholder: Linux, Prism Launcher
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods
+      description: Especially voice chat mods (Simple Voice Chat, Plasmo Voice) or other hosting mods (e4mc, World Host, Essential).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Your `logs/latest.log`, from both players if you can. Upload it to https://mclo.gs and paste the link, or drop the file here.
