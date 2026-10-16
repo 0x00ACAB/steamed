@@ -30,6 +30,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 - **Only the people you invite.** Lobbies are friends-only or invite-only. Every joiner proves who they are with a Steam auth ticket before they can reach your world, and your world isn't opened to your LAN while you host through Steam
 - **Lobby management.** Kick players, leave the lobby, and everyone is disconnected cleanly when the host closes it
 - **Voice chat comes along.** [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) and [Plasmo Voice](https://modrinth.com/plugin/plasmo-voice) are tunnelled over Steam too, with no extra setup
+- **See who came in through Steam.** Players who joined through the Steam lobby get an orange diamond before their name tag, handy when Steam and LAN players share a world
 - **Works without the Steam overlay.** Invites use an in-game friend picker, so they work even when the overlay doesn't show up in Minecraft
 
 ## How it works

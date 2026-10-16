@@ -3,6 +3,7 @@
 	"package": "xyz.kkaii.steamed.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"AvatarRendererMixin",
 		"ConnectScreenAccessor",
 		"IntegratedServerMixin",
 		"PauseMenuMixin",
