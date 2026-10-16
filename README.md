@@ -30,6 +30,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 - **Only the people you invite.** Lobbies are friends-only or invite-only. Every joiner proves who they are with a Steam auth ticket before they can reach your world, and your world isn't opened to your LAN while you host through Steam
 - **Lobby management.** Kick players, leave the lobby, and everyone is disconnected cleanly when the host closes it
 - **Voice chat comes along.** [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) and [Plasmo Voice](https://modrinth.com/plugin/plasmo-voice) are tunnelled over Steam too, with no extra setup
+- **Web maps come along too.** If you run [BlueMap](https://modrinth.com/plugin/bluemap), [squaremap](https://modrinth.com/plugin/squaremap) or [Pl3xMap](https://modrinth.com/plugin/pl3xmap), joiners get a chat link that opens your map through Steam
 - **See who came in through Steam.** Players who joined through the Steam lobby get an orange diamond before their name tag, handy when Steam and LAN players share a world
 - **Works without the Steam overlay.** Invites use an in-game friend picker, so they work even when the overlay doesn't show up in Minecraft
 
@@ -75,6 +76,8 @@ Steamed doesn't have its own Steam app yet, so it uses **Spacewar** (app ID 480)
 If you also use **e4mc** or **e4all**, they open a public tunnel to any world that gets published, including one hosted through Steamed. Turn their hosting off if you only want Steam friends to join.
 
 Steamed shares your Minecraft UUID with your Steam friends (as Steam rich presence and lobby data) so it can show player heads. It remembers the UUIDs it has seen in `config/steamed-known-players.properties`.
+
+squaremap and Pl3xMap default to port 8080, which the Steam client already uses on your machine. Change their web server port (for example to 8081) or the map won't start.
 
 On Linux (and with most launchers anywhere) the Steam overlay won't appear in Minecraft unless the launcher itself was started from Steam. Steamed doesn't need it.
 

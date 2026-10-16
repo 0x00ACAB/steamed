@@ -12,6 +12,8 @@ import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
 import xyz.kkaii.steamed.net.PlasmoVoiceIntegration
 import xyz.kkaii.steamed.net.PublicTunnelMods
 import xyz.kkaii.steamed.net.SvcIntegration
+import xyz.kkaii.steamed.net.SteamP2PWebRelay
+import xyz.kkaii.steamed.net.WebMapIntegration
 import xyz.kkaii.steamed.screen.SteamConnectingScreen
 import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import net.minecraft.ChatFormatting
@@ -23,7 +25,10 @@ import net.minecraft.client.gui.screens.TitleScreen
 import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.server.IntegratedServer
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.HoverEvent
+import net.minecraft.network.chat.Style
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
@@ -33,6 +38,7 @@ import java.lang.ref.WeakReference
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -67,6 +73,8 @@ object Steamed {
     @JvmField
     var p2pVoiceRelay: SteamP2PVoiceRelay? = null
 
+    var p2pWebRelay: SteamP2PWebRelay? = null
+
     @JvmField
     var authHandshake: SteamAuthHandshake? = null
 
@@ -83,6 +91,10 @@ object Steamed {
     // UDP ports of voice mods running on the hosted world, tunneled over SteamP2PVoiceRelay.
     @Volatile
     var hostedVoicePorts: List<Int> = emptyList()
+
+    // Web maps found when hosting started, offered to each joiner once authenticated.
+    @Volatile
+    var hostedWebMaps: List<WebMapIntegration.WebMap> = emptyList()
 
     @Volatile
     var lobbyId: Option<SteamID?> = Option()
@@ -159,6 +171,7 @@ object Steamed {
     private fun dropPeer(peer: SteamID) {
         authHandshake?.endPeer(peer)
         p2pVoiceRelay?.closePeer(peer)
+        p2pWebRelay?.closePeer(peer)
         p2pRelay?.closePeer(peer)
     }
 
@@ -210,6 +223,8 @@ object Steamed {
         authHandshake?.stop()
         p2pRelay?.stop()
         p2pVoiceRelay?.stop()
+        p2pWebRelay?.stop()
+        p2pWebRelay?.expectedHost = null
 
         if (lobbyId.isSome()) {
             val lobby = lobbyId.unwrap()
@@ -225,6 +240,7 @@ object Steamed {
         kickedPeers.clear()
         hostedPort = null
         hostedVoicePorts = emptyList()
+        hostedWebMaps = emptyList()
     }
 
     fun startP2PGame() {
@@ -286,6 +302,10 @@ object Steamed {
         // Joiners learn these from the auth handshake's accepted reply, not from the lobby.
         hostedVoicePorts = listOfNotNull(SvcIntegration.detectPort(), PlasmoVoiceIntegration.detectPort()).distinct()
         LOGGER.info("Tunneling voice ports: {}", hostedVoicePorts)
+        thread(name = "steamed-web-map-detect", isDaemon = true) {
+            hostedWebMaps = WebMapIntegration.detect()
+            LOGGER.info("Web maps for joiners: {}", hostedWebMaps)
+        }
 
         matchmaking?.setLobbyGameServer(lobbyId.unwrap(), 0, 0, user!!.steamID)
         mc.gui.hud.chat.addClientSystemMessage(message)
@@ -326,6 +346,10 @@ object Steamed {
         }
 
         relay.start()
+        p2pWebRelay?.let {
+            it.expectedHost = SteamID(hostSteamId)
+            it.start()
+        }
         handshake.requestAccess(
             hostSteamId,
             onAccepted = { payload ->
@@ -389,6 +413,32 @@ object Steamed {
             ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
             (instance.gui.screen() as? ConnectScreenAccessor)
                 ?.`steamed$updateStatus`(Component.literal("Establishing connection with $hostName..."))
+        }
+    }
+
+    // Joiner: the host offered web maps. Posted once we're in the world, since chat from before joining scrolls away.
+    fun onMapsAvailable(host: SteamID, maps: List<Pair<String, Int>>) {
+        if (maps.isEmpty()) return
+        val hostName = friends?.getFriendPersonaName(host) ?: "The host"
+        val mc = Minecraft.getInstance()
+        thread(name = "steamed-web-map-notice", isDaemon = true) {
+            val deadline = System.currentTimeMillis() + 60_000
+            while (mc.player == null && System.currentTimeMillis() < deadline) Thread.sleep(500)
+            mc.execute {
+                val message = Component.literal("$hostName's world has a web map: ")
+                maps.forEachIndexed { i, (name, port) ->
+                    if (i > 0) message.append(" ")
+                    val url = "http://127.0.0.1:$port/"
+                    message.append(
+                        Component.literal("[Open $name]").withStyle(
+                            Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
+                                .withClickEvent(ClickEvent.OpenUrl(URI(url)))
+                                .withHoverEvent(HoverEvent.ShowText(Component.literal("Opens $url, tunnelled through Steam")))
+                        )
+                    )
+                }
+                mc.gui.hud.chat.addClientSystemMessage(message)
+            }
         }
     }
 

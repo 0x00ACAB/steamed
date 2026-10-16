@@ -12,6 +12,7 @@ import xyz.kkaii.steamed.net.SteamAuthHandshake
 import xyz.kkaii.steamed.net.SteamNetwork
 import xyz.kkaii.steamed.net.SteamP2PRelay
 import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
+import xyz.kkaii.steamed.net.SteamP2PWebRelay
 import xyz.kkaii.steamed.platform.Services
 import xyz.kkaii.steamed.tasks.SteamCallbackTask
 import xyz.kkaii.steamed.tasks.SteamFriendsCallbackEx
@@ -73,6 +74,7 @@ object SteamInit {
         networking = SteamNetworking(network)
         Steamed.p2pRelay = SteamP2PRelay(networking!!)
         Steamed.p2pVoiceRelay = SteamP2PVoiceRelay(networking!!)
+        Steamed.p2pWebRelay = SteamP2PWebRelay(networking!!).apply { onMapsAvailable = Steamed::onMapsAvailable }
         Steamed.authHandshake = SteamAuthHandshake(
             networking!!, user!!,
             authorize = network::refusalReason,

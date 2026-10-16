@@ -63,6 +63,8 @@ class SteamNetwork : SteamNetworkingCallback {
             return null
         }
 
+        Steamed.p2pWebRelay?.offer(peer, Steamed.hostedWebMaps)
+
         val voiceRelay = Steamed.p2pVoiceRelay ?: return ByteArray(0)
         val bridged = Steamed.hostedVoicePorts.filter { voicePort ->
             try {
@@ -81,6 +83,7 @@ class SteamNetwork : SteamNetworkingCallback {
 
     fun unbridgePeer(peer: SteamID) {
         Steamed.p2pVoiceRelay?.closePeer(peer)
+        Steamed.p2pWebRelay?.closePeer(peer)
         Steamed.p2pRelay?.closePeer(peer)
     }
 
