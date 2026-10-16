@@ -28,8 +28,9 @@ class SteamAuthHandshake(
     private val user: SteamUser,
     // Host side: null to allow, otherwise the reason to refuse. Checked when a ticket arrives.
     private val authorize: (SteamID) -> String?,
-    // Host side: bridge an authenticated peer into the relays. False if that failed.
-    private val onAuthenticated: (SteamID) -> Boolean,
+    // Host side: bridge an authenticated peer into the relays. Returns the payload for the
+    // accepted reply, or null if bridging failed.
+    private val onAuthenticated: (SteamID) -> ByteArray?,
     // Host side: a previously valid ticket stopped being valid (cancelled, peer logged off, ...).
     private val onRevoked: (SteamID) -> Unit,
 ) {
@@ -37,7 +38,7 @@ class SteamAuthHandshake(
 
     private class PendingAccess(
         val host: SteamID,
-        val onAccepted: () -> Unit,
+        val onAccepted: (ByteArray) -> Unit,
         val onDenied: (String) -> Unit,
     ) {
         @Volatile
@@ -71,7 +72,7 @@ class SteamAuthHandshake(
     }
 
     // Joiner side. Exactly one of the callbacks runs, from a background thread.
-    fun requestAccess(host: SteamID, onAccepted: () -> Unit, onDenied: (String) -> Unit) {
+    fun requestAccess(host: SteamID, onAccepted: (ByteArray) -> Unit, onDenied: (String) -> Unit) {
         start()
         cancelTicket()
         pending?.let { settle(it) { it.onDenied("Superseded by a newer connection attempt") } }
@@ -137,14 +138,15 @@ class SteamAuthHandshake(
         }
 
         if (peer in bridged) return
-        if (!onAuthenticated(peer)) {
+        val acceptance = onAuthenticated(peer)
+        if (acceptance == null) {
             endSession(peer)
             deny(peer, "The host couldn't open a connection to its world")
             return
         }
 
         bridged.add(SteamID(peer))
-        send(peer, MSG_ACCEPTED, ByteArray(0))
+        send(peer, MSG_ACCEPTED, acceptance)
         logger.info("Authenticated {}", peer.accountID)
     }
 
@@ -172,7 +174,7 @@ class SteamAuthHandshake(
             buffer.get(1, payload)
             when (buffer.get(0)) {
                 MSG_TICKET -> onTicket(SteamID(sender), payload)
-                MSG_ACCEPTED -> fromHost(sender)?.let { settle(it) { it.onAccepted() } }
+                MSG_ACCEPTED -> fromHost(sender)?.let { settle(it) { it.onAccepted(payload) } }
                 MSG_DENIED -> fromHost(sender)?.let {
                     val reason = String(payload, StandardCharsets.UTF_8)
                     settle(it) { it.onDenied(reason) }

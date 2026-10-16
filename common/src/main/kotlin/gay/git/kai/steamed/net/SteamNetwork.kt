@@ -10,6 +10,7 @@ import java.io.IOException
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.Socket
+import java.nio.charset.StandardCharsets
 
 class SteamNetwork : SteamNetworkingCallback {
     private val logger: Logger = LoggerFactory.getLogger("SteamP2P#PreLaunch")
@@ -48,9 +49,10 @@ class SteamNetwork : SteamNetworkingCallback {
         else -> null
     }
 
-    fun bridgePeer(peer: SteamID): Boolean {
-        val port = Steamed.hostedPort ?: return false
-        val relay = Steamed.p2pRelay ?: return false
+    // Returns the accepted reply's payload: the voice ports that got a bridge, comma-separated.
+    fun bridgePeer(peer: SteamID): ByteArray? {
+        val port = Steamed.hostedPort ?: return null
+        val relay = Steamed.p2pRelay ?: return null
 
         try {
             val socket = Socket(InetAddress.getLoopbackAddress(), port)
@@ -58,23 +60,23 @@ class SteamNetwork : SteamNetworkingCallback {
         } catch (e: IOException) {
             logger.error("Failed to open a local bridge connection for {}", peer.accountID, e)
             relay.closePeer(peer)
-            return false
+            return null
         }
 
-        val voicePort = Steamed.hostedVoicePort
-        val voiceRelay = Steamed.p2pVoiceRelay
-        if (voicePort != null && voicePort != 0 && voiceRelay != null) {
+        val voiceRelay = Steamed.p2pVoiceRelay ?: return ByteArray(0)
+        val bridged = Steamed.hostedVoicePorts.filter { voicePort ->
             try {
                 voiceRelay.start()
                 val voiceSocket = DatagramSocket()
                 voiceSocket.connect(InetAddress.getLoopbackAddress(), voicePort)
-                voiceRelay.addPeer(peer, voiceSocket)
+                voiceRelay.addPeer(peer, voicePort, voiceSocket)
+                true
             } catch (e: IOException) {
-                logger.warn("Failed to open a local voice bridge for {}", peer.accountID, e)
-                voiceRelay.closePeer(peer)
+                logger.warn("Failed to open a local voice bridge for {} on port {}", peer.accountID, voicePort, e)
+                false
             }
         }
-        return true
+        return bridged.joinToString(",").toByteArray(StandardCharsets.US_ASCII)
     }
 
     fun unbridgePeer(peer: SteamID) {

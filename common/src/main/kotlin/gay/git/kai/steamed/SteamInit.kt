@@ -216,9 +216,8 @@ object SteamInit {
         ) {
             if (steamIDGameServer == null || steamIDGameServer == user?.steamID) return
 
-            val voicePort = port.toInt() and 0xFFFF
             LOGGER.info("Lobby game created, host is {}", steamIDGameServer.accountID)
-            Steamed.connectToHost(steamIDGameServer, voicePort)
+            Steamed.connectToHost(steamIDGameServer)
         }
 
         override fun onLobbyMatchList(lobbiesMatching: Int) {
