@@ -4,19 +4,10 @@ import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamMatchmaking
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import com.mojang.logging.LogUtils
-import xyz.kkaii.steamed.FriendLobbies
-import xyz.kkaii.steamed.SteamPlayers
-import xyz.kkaii.steamed.platform.Services
-import xyz.kkaii.steamed.Steamed
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
-import net.minecraft.client.gui.components.AbstractWidget
-import net.minecraft.client.gui.components.Button
-import net.minecraft.client.gui.components.ContainerObjectSelectionList
-import net.minecraft.client.gui.components.CycleButton
-import net.minecraft.client.gui.components.PlayerFaceExtractor
-import net.minecraft.client.gui.components.Tooltip
+import net.minecraft.client.gui.components.*
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
@@ -28,7 +19,11 @@ import net.minecraft.network.chat.Component
 import net.minecraft.util.ARGB
 import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
-import java.util.UUID
+import xyz.kkaii.steamed.FriendLobbies
+import xyz.kkaii.steamed.SteamPlayers
+import xyz.kkaii.steamed.Steamed
+import xyz.kkaii.steamed.platform.Services
+import java.util.*
 
 class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobby")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
@@ -89,8 +84,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                     Steamed.joinHostedLobby()
                 }).width(113).build())
             }
-            topFooterButtons.addChild(Button.builder(Component.literal("Leave Lobby"), { `_` -> leaveLobby() })
-                .width(if (this.isOwner) 230 else 113).build())
+            topFooterButtons.addChild(
+                Button.builder(Component.literal("Leave Lobby"), { `_` -> leaveLobby() })
+                    .width(if (this.isOwner) 230 else 113).build()
+            )
 
             this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
                 this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
@@ -168,7 +165,8 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             val matchmaking = Steamed.matchmaking ?: return
             if (!Steamed.lobbyId.isSome()) return
             val lobby = Steamed.lobbyId.unwrap()!!
-            val current = (0..<matchmaking.getNumLobbyMembers(lobby)).map { matchmaking.getLobbyMemberByIndex(lobby, it) }
+            val current =
+                (0..<matchmaking.getNumLobbyMembers(lobby)).map { matchmaking.getLobbyMemberByIndex(lobby, it) }
             if (current != members) {
                 members = current
                 val owner = matchmaking.getLobbyOwner(lobby)
@@ -203,7 +201,8 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             }
 
             fun resolveHead() {
-                if (head == null) head = SteamPlayers.memberUuid(lobby, steamId)?.let { ResolvableProfile.createUnresolved(it) }
+                if (head == null) head =
+                    SteamPlayers.memberUuid(lobby, steamId)?.let { ResolvableProfile.createUnresolved(it) }
             }
 
             private fun status(): Component? = when {
@@ -214,7 +213,13 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                 else -> null
             }
 
-            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
                 graphics.fill(this.contentX, this.contentY, this.contentRight, this.contentBottom, BG_FILL)
                 val faceX = this.contentX + 4
                 val faceY = this.contentY + (this.contentHeight - 24) / 2
@@ -276,7 +281,15 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             protected fun drawRow(graphics: GuiGraphicsExtractor, face: UUID?, title: Component, subtitle: Component?) {
                 graphics.fill(this.contentX, this.contentY, this.contentRight, this.contentBottom, BG_FILL)
                 val faceX = this.contentX + 4
-                face?.let { PlayerFaceExtractor.extractRenderState(graphics, ResolvableProfile.createUnresolved(it), faceX, this.contentY + (this.contentHeight - 24) / 2, 24) }
+                face?.let {
+                    PlayerFaceExtractor.extractRenderState(
+                        graphics,
+                        ResolvableProfile.createUnresolved(it),
+                        faceX,
+                        this.contentY + (this.contentHeight - 24) / 2,
+                        24
+                    )
+                }
                 val textX = faceX + 24 + 4
                 if (subtitle == null) {
                     graphics.text(font, title, textX, this.contentY + (this.contentHeight - 9) / 2, -1)
@@ -315,8 +328,19 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                 }.width(50).build(),
             )
 
-            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
-                drawRow(graphics, SteamPlayers.friendUuid(invite.inviter), Component.literal(invite.inviterName), Component.literal("Invited you to their lobby"))
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
+                drawRow(
+                    graphics,
+                    SteamPlayers.friendUuid(invite.inviter),
+                    Component.literal(invite.inviterName),
+                    Component.literal("Invited you to their lobby")
+                )
                 placeButtons(graphics, mouseX, mouseY, a)
             }
         }
@@ -334,12 +358,23 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                 },
             )
 
-            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
                 val names = hosted.friends.joinToString(", ") { it.second }
                 val world = hosted.world.ifEmpty { "a world" }
                 val subtitle = if (hosted.compatible) Component.literal("Playing $world")
                 else Component.literal("Steamed ${hosted.version}").withStyle(ChatFormatting.RED)
-                drawRow(graphics, SteamPlayers.friendUuid(hosted.friends.first().first), Component.literal(names), subtitle)
+                drawRow(
+                    graphics,
+                    SteamPlayers.friendUuid(hosted.friends.first().first),
+                    Component.literal(names),
+                    subtitle
+                )
                 placeButtons(graphics, mouseX, mouseY, a)
             }
         }
@@ -347,8 +382,20 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         inner class EmptyRow : Row() {
             override val buttons: List<AbstractWidget> = emptyList()
 
-            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
-                graphics.centeredText(font, Component.literal("None of your Steam friends are hosting right now"), this.contentX + this.contentWidth / 2, this.contentY + (this.contentHeight - 9) / 2, STATUS_COLOR)
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
+                graphics.centeredText(
+                    font,
+                    Component.literal("None of your Steam friends are hosting right now"),
+                    this.contentX + this.contentWidth / 2,
+                    this.contentY + (this.contentHeight - 9) / 2,
+                    STATUS_COLOR
+                )
             }
         }
     }

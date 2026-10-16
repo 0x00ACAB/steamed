@@ -1,7 +1,6 @@
 package xyz.kkaii.steamed.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.layouts.GridLayout;
 import net.minecraft.client.gui.screens.PauseScreen;
@@ -11,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 
 @Mixin(PauseScreen.class)
 public class PauseMenuMixin extends Screen {

@@ -1,6 +1,5 @@
 package xyz.kkaii.steamed.screen
 
-import xyz.kkaii.steamed.Steamed
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.LoadingDotsText
@@ -8,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.util.Util
+import xyz.kkaii.steamed.Steamed
 
 // Shown while the Steam auth handshake runs, before Minecraft's own ConnectScreen takes over.
 class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: String) :
@@ -34,7 +34,13 @@ class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: Strin
         val status = failure ?: Component.literal("Connecting through Steam")
         graphics.centeredText(this.font, status, this.width / 2, this.height / 2 - 30, -6250336)
         if (failure == null) {
-            graphics.centeredText(this.font, Component.literal(LoadingDotsText.get(Util.getMillis())), this.width / 2, this.height / 2 - 16, -8355712)
+            graphics.centeredText(
+                this.font,
+                Component.literal(LoadingDotsText.get(Util.getMillis())),
+                this.width / 2,
+                this.height / 2 - 16,
+                -8355712
+            )
         }
     }
 

@@ -2,7 +2,6 @@ package xyz.kkaii.steamed
 
 import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamNativeHandle
-import xyz.kkaii.steamed.platform.Services
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FontDescription
@@ -12,10 +11,10 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.platform.Services
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Properties
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 // Minecraft UUIDs of Steam users, for the nametag marker and for heads in the lobby and invite screens.
@@ -26,11 +25,26 @@ object SteamPlayers {
     private const val UUID_KEY = "mc_uuid"
     private val LOGGER: Logger = LoggerFactory.getLogger("SteamPlayers")
 
-    private val knownFile: Path by lazy { Path.of(Services.PLATFORM.gameDir(), "config", "steamed-known-players.properties") }
+    private val knownFile: Path by lazy {
+        Path.of(
+            Services.PLATFORM.gameDir(),
+            "config",
+            "steamed-known-players.properties"
+        )
+    }
     private val known: ConcurrentHashMap<Long, UUID> by lazy { load() }
 
     private val ICON: Component = Component.literal("\uE000")
-        .withStyle(Style.EMPTY.withFont(FontDescription.Resource(Identifier.fromNamespaceAndPath("steamed", "nametag"))))
+        .withStyle(
+            Style.EMPTY.withFont(
+                FontDescription.Resource(
+                    Identifier.fromNamespaceAndPath(
+                        "steamed",
+                        "nametag"
+                    )
+                )
+            )
+        )
 
     @JvmStatic
     fun decorate(uuid: UUID, name: Component): Component =

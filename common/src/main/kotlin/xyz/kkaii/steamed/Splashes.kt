@@ -3,7 +3,7 @@ package xyz.kkaii.steamed
 import com.codedisaster.steamworks.SteamFriends
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Style
-import java.util.Locale
+import java.util.*
 import kotlin.random.Random
 
 // Title screen splashes about Steam and P2P. The plain ones join vanilla's pool; now and then a personal one,
@@ -42,7 +42,14 @@ object Splashes {
         friends.personaName?.takeIf { it.isNotBlank() }?.let { options += "${it.uppercase(Locale.ROOT)} IS STEAMED" }
         FriendLobbies.scan().firstOrNull()?.let { options += "${it.friends.first().second} is hosting!" }
         val online = (0 until friends.getFriendCount(SteamFriends.FriendFlags.Immediate))
-            .count { friends.getFriendPersonaState(friends.getFriendByIndex(it, SteamFriends.FriendFlags.Immediate)) != SteamFriends.PersonaState.Offline }
+            .count {
+                friends.getFriendPersonaState(
+                    friends.getFriendByIndex(
+                        it,
+                        SteamFriends.FriendFlags.Immediate
+                    )
+                ) != SteamFriends.PersonaState.Offline
+            }
         if (online > 1) options += "$online Steam friends online!"
         return options.randomOrNull()?.let { Component.literal(it).setStyle(STYLE) }
     }

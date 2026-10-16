@@ -88,6 +88,7 @@ class SteamP2PWebRelay(private val networking: SteamNetworking) {
                 if (sender != expectedHost) return
                 listenFor(sender, WebMapList.decode(frame))
             }
+
             OPEN -> {
                 val id = frame.getInt()
                 val map = offered[sender]?.getOrNull(frame.get().toInt() and 0xFF)
@@ -105,6 +106,7 @@ class SteamP2PWebRelay(private val networking: SteamNetworking) {
                 }
                 pump(sender, id, socket, hostSide = true)
             }
+
             DATA_UP -> deliver(served, sender, frame, hostSide = true)
             DATA_DOWN -> deliver(opened, sender, frame, hostSide = false)
             CLOSE_UP -> close(sender, frame.getInt(), hostSide = true, notify = false)
@@ -205,7 +207,8 @@ class SteamP2PWebRelay(private val networking: SteamNetworking) {
 
     fun stop() {
         running = false
-        (offered.keys + listeners.keys + served.keys.map { it.peer } + opened.keys.map { it.peer }).toSet().forEach { closePeer(it) }
+        (offered.keys + listeners.keys + served.keys.map { it.peer } + opened.keys.map { it.peer }).toSet()
+            .forEach { closePeer(it) }
     }
 
     companion object {

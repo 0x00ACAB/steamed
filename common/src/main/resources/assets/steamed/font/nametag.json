@@ -1,10 +1,12 @@
 {
-	"providers": [
-		{
-			"type": "bitmap",
-			"file": "steamed:font/nametag.png",
-			"ascent": 7,
-			"chars": [""]
-		}
-	]
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "steamed:font/nametag.png",
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    }
+  ]
 }

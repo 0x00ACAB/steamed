@@ -15,7 +15,12 @@ object FriendLobbies {
     private const val APP_ID = 480L
     private const val REQUEST_INTERVAL_MS = 10_000L
 
-    data class Hosted(val lobby: SteamID, val friends: List<Pair<SteamID, String>>, val world: String, val version: String) {
+    data class Hosted(
+        val lobby: SteamID,
+        val friends: List<Pair<SteamID, String>>,
+        val world: String,
+        val version: String
+    ) {
         val compatible: Boolean get() = version == Services.PLATFORM.modVersion()
     }
 
@@ -50,7 +55,11 @@ object FriendLobbies {
         return byLobby.mapNotNull { (handle, members) ->
             val lobby = lobbies.getValue(handle)
             val version = matchmaking.getLobbyData(lobby, MARKER_KEY)
-            if (version.isNullOrEmpty() || matchmaking.getLobbyData(lobby, VISIBILITY_KEY) == "private") return@mapNotNull null
+            if (version.isNullOrEmpty() || matchmaking.getLobbyData(
+                    lobby,
+                    VISIBILITY_KEY
+                ) == "private"
+            ) return@mapNotNull null
             Hosted(lobby, members, matchmaking.getLobbyData(lobby, "name").orEmpty(), version)
         }
     }

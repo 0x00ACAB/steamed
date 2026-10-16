@@ -4,19 +4,6 @@
 package xyz.kkaii.steamed
 
 import com.codedisaster.steamworks.*
-import xyz.kkaii.steamed.lib.Option
-import xyz.kkaii.steamed.mixin.ConnectScreenAccessor
-import xyz.kkaii.steamed.net.SteamAuthHandshake
-import xyz.kkaii.steamed.net.SteamP2PRelay
-import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
-import xyz.kkaii.steamed.net.VoicePorts
-import xyz.kkaii.steamed.net.PlasmoVoiceIntegration
-import xyz.kkaii.steamed.net.PublicTunnelMods
-import xyz.kkaii.steamed.net.SvcIntegration
-import xyz.kkaii.steamed.net.SteamP2PWebRelay
-import xyz.kkaii.steamed.net.WebMapIntegration
-import xyz.kkaii.steamed.screen.SteamConnectingScreen
-import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.toasts.SystemToast
@@ -34,6 +21,11 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.lib.Option
+import xyz.kkaii.steamed.mixin.ConnectScreenAccessor
+import xyz.kkaii.steamed.net.*
+import xyz.kkaii.steamed.screen.SteamConnectingScreen
+import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.net.DatagramSocket
@@ -197,6 +189,7 @@ object Steamed {
                 if (target != user?.steamID?.let { SteamNativeHandle.getNativeHandle(it) }) return
                 "The host removed you from the Steam lobby"
             }
+
             else -> return
         }
 
@@ -326,7 +319,7 @@ object Steamed {
             mc.gui.hud.chat.addClientSystemMessage(
                 Component.literal(
                     "${tunnels.joinToString(" and ")} may also have opened this world to the internet. " +
-                        "Turn off its hosting if only your Steam friends should join"
+                            "Turn off its hosting if only your Steam friends should join"
                 ).withStyle(ChatFormatting.GOLD)
             )
         }
@@ -397,7 +390,12 @@ object Steamed {
                     val voiceSocket = DatagramSocket(voicePort, InetAddress.getLoopbackAddress())
                     voiceRelay.addPeer(hostSteamId, voicePort, voiceSocket)
                 } catch (e: IOException) {
-                    LOGGER.warn("Failed to set up a voice bridge for {} on port {}", hostSteamId.accountID, voicePort, e)
+                    LOGGER.warn(
+                        "Failed to set up a voice bridge for {} on port {}",
+                        hostSteamId.accountID,
+                        voicePort,
+                        e
+                    )
                 }
             }
         }
@@ -418,7 +416,8 @@ object Steamed {
             val address = ServerAddress("127.0.0.1", localPort)
             val serverData = ServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort", ServerData.Type.LAN)
             val current = instance.gui.screen()
-            val parent = (if (current is SteamConnectingScreen) current.lastScreen else current) ?: SteamLobbyScreen(null)
+            val parent =
+                (if (current is SteamConnectingScreen) current.lastScreen else current) ?: SteamLobbyScreen(null)
             lobbyWorldStarted = true
             ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
             (instance.gui.screen() as? ConnectScreenAccessor)

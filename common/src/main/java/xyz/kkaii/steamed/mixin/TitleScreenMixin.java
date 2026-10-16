@@ -1,13 +1,6 @@
 package xyz.kkaii.steamed.mixin;
 
-import xyz.kkaii.steamed.SteamPlayers;
-import xyz.kkaii.steamed.Steamed;
-import xyz.kkaii.steamed.screen.SteamLobbyScreen;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.components.PlainTextButton;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.WidgetSprites;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -19,6 +12,9 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import xyz.kkaii.steamed.SteamPlayers;
+import xyz.kkaii.steamed.Steamed;
+import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 
 @Mixin(TitleScreen.class)
 public class TitleScreenMixin extends Screen {

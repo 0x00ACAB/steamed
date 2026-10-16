@@ -3,9 +3,9 @@ package xyz.kkaii.steamed.net
 import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamNetworking
 import com.codedisaster.steamworks.SteamNetworkingCallback
-import xyz.kkaii.steamed.Steamed
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.Steamed
 import java.io.IOException
 import java.net.DatagramSocket
 import java.net.InetAddress

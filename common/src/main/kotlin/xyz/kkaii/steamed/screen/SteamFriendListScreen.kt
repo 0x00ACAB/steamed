@@ -3,8 +3,6 @@ package xyz.kkaii.steamed.screen
 import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamID
 import com.mojang.logging.LogUtils
-import xyz.kkaii.steamed.SteamPlayers
-import xyz.kkaii.steamed.Steamed
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
@@ -16,6 +14,8 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import org.slf4j.Logger
+import xyz.kkaii.steamed.SteamPlayers
+import xyz.kkaii.steamed.Steamed
 
 class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.literal("Invite a Friend")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
@@ -103,7 +103,13 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
                 invited = true
             }
 
-            override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
+            override fun extractContent(
+                graphics: GuiGraphicsExtractor,
+                mouseX: Int,
+                mouseY: Int,
+                hovered: Boolean,
+                a: Float
+            ) {
                 val label = Component.empty()
                 head?.let { label.append(it).append(" ") }
                 label.append(if (invited) "$name (invited)" else "$name - $state")

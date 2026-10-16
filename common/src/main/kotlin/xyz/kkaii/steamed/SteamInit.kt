@@ -3,19 +3,6 @@ package xyz.kkaii.steamed
 import com.codedisaster.steamworks.*
 import com.codedisaster.steamworks.SteamAPI.InitResult
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
-import xyz.kkaii.steamed.Steamed.friends
-import xyz.kkaii.steamed.Steamed.matchmaking
-import xyz.kkaii.steamed.Steamed.networking
-import xyz.kkaii.steamed.Steamed.user
-import xyz.kkaii.steamed.Steamed.userStats
-import xyz.kkaii.steamed.net.SteamAuthHandshake
-import xyz.kkaii.steamed.net.SteamNetwork
-import xyz.kkaii.steamed.net.SteamP2PRelay
-import xyz.kkaii.steamed.net.SteamP2PVoiceRelay
-import xyz.kkaii.steamed.net.SteamP2PWebRelay
-import xyz.kkaii.steamed.platform.Services
-import xyz.kkaii.steamed.tasks.SteamCallbackTask
-import xyz.kkaii.steamed.tasks.SteamFriendsCallbackEx
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
 import net.minecraft.client.input.KeyEvent
@@ -23,6 +10,15 @@ import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.Steamed.friends
+import xyz.kkaii.steamed.Steamed.matchmaking
+import xyz.kkaii.steamed.Steamed.networking
+import xyz.kkaii.steamed.Steamed.user
+import xyz.kkaii.steamed.Steamed.userStats
+import xyz.kkaii.steamed.net.*
+import xyz.kkaii.steamed.platform.Services
+import xyz.kkaii.steamed.tasks.SteamCallbackTask
+import xyz.kkaii.steamed.tasks.SteamFriendsCallbackEx
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -129,7 +125,12 @@ object SteamInit {
         private val messageCharset: Charset = StandardCharsets.UTF_8
 
         override fun onLobbyInvite(steamIDUser: SteamID, steamIDLobby: SteamID, gameID: Long) {
-            LOGGER.info("Lobby invite received for {} from user {} (game {})", steamIDLobby, steamIDUser.accountID, gameID)
+            LOGGER.info(
+                "Lobby invite received for {} from user {} (game {})",
+                steamIDLobby,
+                steamIDUser.accountID,
+                gameID
+            )
             Steamed.onLobbyInvite(steamIDLobby, steamIDUser)
         }
 
@@ -145,7 +146,15 @@ object SteamInit {
                 if (Steamed.lobbyId.isSome() && Steamed.lobbyId.unwrap() == steamIDLobby) Steamed.lobbyId.some(null)
                 val instance = Minecraft.getInstance()
                 instance.execute {
-                    instance.gui.hud.chat.addClientSystemMessage(Component.literal("Couldn't join the lobby: ${enterFailureReason(response)}"))
+                    instance.gui.hud.chat.addClientSystemMessage(
+                        Component.literal(
+                            "Couldn't join the lobby: ${
+                                enterFailureReason(
+                                    response
+                                )
+                            }"
+                        )
+                    )
                 }
                 return
             }
@@ -167,7 +176,12 @@ object SteamInit {
         }
 
         override fun onLobbyDataUpdate(steamIDLobby: SteamID?, steamIDMember: SteamID, success: Boolean) {
-            LOGGER.info("Lobby data update for {} (member={}, success={})", steamIDLobby, steamIDMember.accountID, success)
+            LOGGER.info(
+                "Lobby data update for {} (member={}, success={})",
+                steamIDLobby,
+                steamIDMember.accountID,
+                success
+            )
             SteamPlayers.refresh()
         }
 

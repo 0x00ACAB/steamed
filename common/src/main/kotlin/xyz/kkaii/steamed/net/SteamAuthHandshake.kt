@@ -1,12 +1,6 @@
 package xyz.kkaii.steamed.net
 
-import com.codedisaster.steamworks.SteamAuth
-import com.codedisaster.steamworks.SteamAuthTicket
-import com.codedisaster.steamworks.SteamException
-import com.codedisaster.steamworks.SteamID
-import com.codedisaster.steamworks.SteamNetworking
-import com.codedisaster.steamworks.SteamResult
-import com.codedisaster.steamworks.SteamUser
+import com.codedisaster.steamworks.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
@@ -179,6 +173,7 @@ class SteamAuthHandshake(
                     val reason = String(payload, StandardCharsets.UTF_8)
                     settle(it) { it.onDenied(reason) }
                 }
+
                 else -> logger.warn("Unknown auth message from {}", sender.accountID)
             }
         }

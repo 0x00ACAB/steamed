@@ -1,6 +1,6 @@
 package xyz.kkaii.steamed.platform
 
-import java.util.ServiceLoader
+import java.util.*
 
 object Services {
     val PLATFORM: IPlatformHelper = ServiceLoader.load(IPlatformHelper::class.java, Services::class.java.classLoader)

@@ -1,7 +1,7 @@
 package xyz.kkaii.steamed.fabric
 
-import xyz.kkaii.steamed.SteamInit
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint
+import xyz.kkaii.steamed.SteamInit
 
 class SteamPreLaunchFabric : PreLaunchEntrypoint {
     override fun onPreLaunch() {

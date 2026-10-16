@@ -16,7 +16,11 @@ dependencies {
         // SecurityException at runtime. Quilt's own implementation of that package is enough.
         exclude(group = "net.fabricmc", module = "fabric-loader")
     }
-    implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("quilt_fabric_kotlin_version").get()}")
+    implementation(
+        "net.fabricmc:fabric-language-kotlin:${
+            providers.gradleProperty("quilt_fabric_kotlin_version").get()
+        }"
+    )
 
     include("com.code-disaster.steamworks4j:steamworks4j:1.10.0")
     include("com.code-disaster.steamworks4j:steamworks4j-lwjgl3:1.10.0")

@@ -3,7 +3,7 @@ package xyz.kkaii.steamed.net
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
-import java.util.Optional
+import java.util.*
 
 object PlasmoVoiceIntegration {
     private val logger: Logger = LoggerFactory.getLogger("PlasmoVoiceIntegration")
@@ -28,7 +28,7 @@ object PlasmoVoiceIntegration {
                 return null
             }
             val address = (udpApi.getMethod("getRemoteAddress").invoke(udp) as Optional<*>).orElse(null)
-                as? InetSocketAddress ?: return null
+                    as? InetSocketAddress ?: return null
             address.port.takeIf { it in 1..65535 }
         } catch (e: Exception) {
             logger.warn("Couldn't read Plasmo Voice's UDP server port, its voice won't be tunneled", e)

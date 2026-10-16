@@ -1,8 +1,7 @@
 package xyz.kkaii.steamed.quilt
 
-import xyz.kkaii.steamed.platform.IPlatformHelper
-import net.fabricmc.loader.api.FabricLoader
 import org.quiltmc.loader.api.QuiltLoader
+import xyz.kkaii.steamed.platform.IPlatformHelper
 
 class QuiltPlatformHelper : IPlatformHelper {
     override fun gameDir(): String = QuiltLoader.getGameDir().toString()
