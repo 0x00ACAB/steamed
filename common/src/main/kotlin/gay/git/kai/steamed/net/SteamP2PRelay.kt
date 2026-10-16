@@ -58,7 +58,7 @@ class SteamP2PRelay(private val networking: SteamNetworking) {
     }
 
     fun addPeer(peer: SteamID, localSocket: Socket) {
-        peers[peer] = localSocket
+        peers.put(peer, localSocket)?.let { closeQuietly(it) }
         thread(name = "steamed-p2p-send-${peer.accountID}", isDaemon = true) {
             val buffer = ByteArray(65536)
             try {
@@ -75,20 +75,24 @@ class SteamP2PRelay(private val networking: SteamNetworking) {
             } catch (e: IOException) {
                 logger.info("Local bridge connection for {} closed: {}", peer.accountID, e.message)
             } finally {
-                closePeer(peer)
+                closeQuietly(localSocket)
+                // Only if still current: a replacement bridge for the same peer must not be torn down by this one ending.
+                if (peers.remove(peer, localSocket)) networking.closeP2PSessionWithUser(peer)
             }
         }
     }
 
     fun closePeer(peer: SteamID) {
-        peers.remove(peer)?.let {
-            try {
-                it.close()
-            } catch (e: IOException) {
-                // already closed
-            }
-        }
+        peers.remove(peer)?.let { closeQuietly(it) }
         networking.closeP2PSessionWithUser(peer)
+    }
+
+    private fun closeQuietly(socket: Socket) {
+        try {
+            socket.close()
+        } catch (e: IOException) {
+            // already closed
+        }
     }
 
     fun stop() {

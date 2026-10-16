@@ -100,7 +100,7 @@ class SteamP2PVoiceRelay(private val networking: SteamNetworking) {
         if (localSocket.isConnected) {
             entry.remote = localSocket.remoteSocketAddress as InetSocketAddress
         }
-        peers[peer] = entry
+        peers.put(peer, entry)?.socket?.close()
 
         thread(name = "steamed-p2p-voice-send-${peer.accountID}", isDaemon = true) {
             val buffer = ByteArray(65536)
@@ -122,19 +122,14 @@ class SteamP2PVoiceRelay(private val networking: SteamNetworking) {
             } catch (e: IOException) {
                 logger.info("Local voice bridge for {} closed: {}", peer.accountID, e.message)
             } finally {
-                closePeer(peer)
+                localSocket.close()
+                if (peers.remove(peer, entry)) networking.closeP2PChannelWithUser(peer, VOICE_CHANNEL)
             }
         }
     }
 
     fun closePeer(peer: SteamID) {
-        peers.remove(peer)?.socket?.let {
-            try {
-                it.close()
-            } catch (e: IOException) {
-                // already closed
-            }
-        }
+        peers.remove(peer)?.socket?.close()
         networking.closeP2PChannelWithUser(peer, VOICE_CHANNEL)
     }
 
