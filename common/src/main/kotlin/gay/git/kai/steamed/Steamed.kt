@@ -9,6 +9,7 @@ import gay.git.kai.steamed.mixin.ConnectScreenAccessor
 import gay.git.kai.steamed.net.SteamAuthHandshake
 import gay.git.kai.steamed.net.SteamP2PRelay
 import gay.git.kai.steamed.net.SteamP2PVoiceRelay
+import gay.git.kai.steamed.net.PlasmoVoiceIntegration
 import gay.git.kai.steamed.net.SvcIntegration
 import gay.git.kai.steamed.screen.SteamLobbyScreen
 import net.minecraft.client.Minecraft
@@ -28,6 +29,7 @@ import java.lang.ref.WeakReference
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.ServerSocket
+import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.Volatile
@@ -74,8 +76,9 @@ object Steamed {
     @Volatile
     var hostedPort: Int? = null
 
+    // UDP ports of voice mods running on the hosted world, tunneled over SteamP2PVoiceRelay.
     @Volatile
-    var hostedVoicePort: Int? = null
+    var hostedVoicePorts: List<Int> = emptyList()
 
     @Volatile
     var lobbyId: Option<SteamID?> = Option()
@@ -171,7 +174,7 @@ object Steamed {
         lobbyId.some(null)
         kickedPeers.clear()
         hostedPort = null
-        hostedVoicePort = null
+        hostedVoicePorts = emptyList()
     }
 
     fun startP2PGame() {
@@ -229,19 +232,15 @@ object Steamed {
         hostedPort = port
         p2pRelay?.start()
 
-        val voicePort = SvcIntegration.detectPort() ?: 0
-        hostedVoicePort = voicePort
+        // Joiners learn these from the auth handshake's accepted reply, not from the lobby.
+        hostedVoicePorts = listOfNotNull(SvcIntegration.detectPort(), PlasmoVoiceIntegration.detectPort()).distinct()
+        LOGGER.info("Tunneling voice ports: {}", hostedVoicePorts)
 
-        matchmaking?.setLobbyGameServer(
-            lobbyId.unwrap(),
-            0,
-            voicePort.toShort(),
-            user!!.steamID
-        )
+        matchmaking?.setLobbyGameServer(lobbyId.unwrap(), 0, 0, user!!.steamID)
         mc.gui.hud.chat.addClientSystemMessage(message)
     }
 
-    fun connectToHost(hostSteamId: SteamID, voicePort: Int = 0) {
+    fun connectToHost(hostSteamId: SteamID) {
         val relay = p2pRelay
         if (relay == null) {
             LOGGER.error("No P2P relay available, cannot connect to {}", hostSteamId.accountID)
@@ -265,7 +264,10 @@ object Steamed {
         relay.start()
         handshake.requestAccess(
             hostSteamId,
-            onAccepted = { openBridgeToHost(relay, hostSteamId, hostName, voicePort) },
+            onAccepted = { payload ->
+                val voicePorts = String(payload, StandardCharsets.US_ASCII).split(',').mapNotNull { it.toIntOrNull() }
+                openBridgeToHost(relay, hostSteamId, hostName, voicePorts)
+            },
             onDenied = { reason ->
                 LOGGER.warn("Host {} refused the connection: {}", hostSteamId.accountID, reason)
                 instance.execute {
@@ -275,26 +277,24 @@ object Steamed {
         )
     }
 
-    private fun openBridgeToHost(relay: SteamP2PRelay, hostSteamId: SteamID, hostName: String, voicePort: Int) {
+    private fun openBridgeToHost(relay: SteamP2PRelay, hostSteamId: SteamID, hostName: String, voicePorts: List<Int>) {
         val serverSocket = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
         val localPort = serverSocket.localPort
 
-        if (voicePort != 0) {
-            val voiceRelay = p2pVoiceRelay
-            if (voiceRelay == null) {
-                LOGGER.warn("No voice relay available, skipping voice bridge for {}", hostSteamId.accountID)
-            } else {
+        val voiceRelay = p2pVoiceRelay
+        if (voicePorts.isNotEmpty() && voiceRelay != null) {
+            voiceRelay.start()
+            // A previous attempt's bridges would still hold the ports below.
+            voiceRelay.closePeer(hostSteamId)
+            for (voicePort in voicePorts) {
                 try {
-                    voiceRelay.start()
-                    // A previous attempt's bridge would still hold the port below.
-                    voiceRelay.closePeer(hostSteamId)
-                    // On an integrated server SVC always sends a blank voice_host, so its client
-                    // sends voice to the Minecraft connection's address (this loopback bridge) on
-                    // the host's real voice port - the bridge must listen on that exact port.
+                    // Voice mods on an integrated server tell their clients to use the Minecraft
+                    // connection's address (this loopback bridge) with the host's real voice port,
+                    // so the bridge must listen on that exact port number.
                     val voiceSocket = DatagramSocket(voicePort, InetAddress.getLoopbackAddress())
-                    voiceRelay.addPeer(hostSteamId, voiceSocket)
+                    voiceRelay.addPeer(hostSteamId, voicePort, voiceSocket)
                 } catch (e: IOException) {
-                    LOGGER.warn("Failed to set up a voice bridge for {}", hostSteamId.accountID, e)
+                    LOGGER.warn("Failed to set up a voice bridge for {} on port {}", hostSteamId.accountID, voicePort, e)
                 }
             }
         }
@@ -349,7 +349,6 @@ object Steamed {
             return
         }
 
-        val voicePort = outPort[0].toInt() and 0xFFFF
-        connectToHost(outServer, voicePort)
+        connectToHost(outServer)
     }
 }
