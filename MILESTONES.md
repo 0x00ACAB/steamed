@@ -104,7 +104,7 @@ Added a `quilt` module the same way as `fabric`/`neoforge` — same `common` reu
 ### M11: Voice chat tunneling (Simple Voice Chat)
 Companion mods that open their own network port (Simple Voice Chat first) can now have that traffic tunneled over Steam P2P the same way the Minecraft connection itself is (M8) — same session, a second channel, rather than a new negotiation. Confirmed via `javap` against the real `steamworks4j-1.10.0.jar` that P2P sessions are per-peer, not per-channel (`acceptP2PSessionWithUser(SteamID)`/`onP2PSessionRequest(SteamID)` carry no channel argument), so the existing lobby-membership accept gate in `SteamNetwork` already covers a second channel for free.
 
-- [x] `net/SvcIntegration.kt`: reads SVC's port out of `config/voicechat/voicechat-server.properties` (`Services.PLATFORM.gameDir()`, the same helper `SteamInit.createAppid()` already uses); returns `null` if the file is absent (SVC not installed) or unreadable, falls back to the default `24454` if the file exists but the key doesn't. Never throws
+- [x] `net/SvcIntegration.kt`: asks the running SVC voice server for its bound port by reflection (`Voicechat.SERVER.getServer().getPort()`), so SVC is still not a compile-time dependency. Returns `null` if SVC isn't installed, its voice server isn't running, or the reflection fails. Never throws. (It originally read `port` from `config/voicechat/voicechat-server.properties`. That was wrong, see the correction below)
 - [x] `net/SteamP2PVoiceRelay.kt`: a UDP sibling to `SteamP2PRelay`, kept as a fully separate class rather than folded into it — `MILESTONES.md`'s own M8 wake-ping bug (a stray byte on the shared channel corrupting the Minecraft connection) is a direct precedent for why voice traffic needs its own channel (1) and its own relay, not a shared one. Sends `Unreliable` instead of `Reliable`; the host side connects its local socket to a fixed remote (its own SVC server) while the joiner side leaves its socket unconnected and learns the remote from the first packet its local SVC client sends; an idle-timeout reaper (60s) closes a peer's voice bridge since `DatagramSocket` has no EOF signal. `closePeer()` calls `closeP2PChannelWithUser(peer, 1)`, never `closeP2PSessionWithUser` — a real correction caught before it shipped: the latter would tear down the whole session, including the live Minecraft channel, on something as routine as a voice idle-timeout
 - [x] The dead `port` field on `setLobbyGameServer`/`getLobbyGameServer` (always `0` since M8's switch away from direct TCP) now carries the host's detected SVC port to the joiner; `ip` stays unused
 - [x] Wired into `startP2PGame`/`connectToHost`/`joinHostedLobby` (`Steamed.kt`) and `onP2PSessionRequest`/`onP2PSessionConnectFail` (`SteamNetwork.kt`) — every voice-bridge failure path is logged and swallowed, never allowed to block or fail the Minecraft connection itself
@@ -112,7 +112,12 @@ Companion mods that open their own network port (Simple Voice Chat first) can no
 - [x] Verified against real Steam, not just by reading the code: a standalone harness sent a marker packet to this machine's own Steam account on channel 1 and confirmed channel 0 never saw it (proving channel isolation), then round-tripped a UDP packet through the actual compiled `SteamP2PVoiceRelay` class — a fake local "SVC client" socket sent data in, and got the identical bytes back, having gone through real Steam P2P transport on channel 1
 - [x] `./gradlew build` across all four modules (fabric/neoforge/quilt/common) and a fresh `:fabric:runClient` both confirmed no regression: Steam init succeeds, no Steamed-related exceptions, only the already-documented benign noise (flite narrator, X11 cursor, Realms auth)
 
-**Not verified, stated plainly**: whether Simple Voice Chat's client actually defaults to "same host as the Minecraft connection" when its own `voice_host` config is blank — this is inferred from convention, not read from SVC's source, and there's no way to install/test real SVC in this environment. Also not verified: an actual host/join UI flow with a real SVC install and two people talking. The mechanism (channel isolation, the relay class itself, the plumbing wiring) is proven against real Steam P2P; real voice audio end to end is not.
+**Correction (2026-10-16), from reading SVC's source (`henkelmax/simple-voice-chat` @ `f8d8146`) and running SVC 2.6.24+26.2 in `:fabric:runClient`:**
+- [x] On an integrated server, SVC **ignores its configured `port`** and binds an ephemeral one (`Server`'s constructor: `port = 0` unless `server instanceof DedicatedServer`). The test run's voice server came up on UDP 46996 while the config said 24454, so the config-file approach advertised a port nothing listened on and voice could never have worked. `SvcIntegration.detectPort()` now reads the live port instead; the same run logged `detectPort() = 46996`, matching SVC's own "Voice chat server started at port 46996"
+- [x] SVC's client **does** use the Minecraft connection's address: `InitializationData.parseAddress` falls back to the server IP the client connected to when `voice_host` is blank, and on a non-dedicated server `ServerVoiceEvents` always sends a blank `voice_host` (the config value is only used on dedicated servers). So the planned "write `voice_host=127.0.0.1`" fallback isn't needed, and wouldn't have done anything on an integrated server
+- [x] SVC on an integrated server binds the wildcard address (`*:46996` in `ss -ulpn`), confirming the M7 note that voice stays reachable from the LAN
+
+**Still not verified**: an actual host/join UI flow with a real SVC install and two people talking. The mechanism (channel isolation, the relay class, port discovery) is proven; real voice audio end to end is not.
 
 ### M6 (partial): leave the lobby and stop relays when the world closes
 Until now there was no way to leave a lobby short of quitting the whole game — closing a world (host quitting to title, or a joiner disconnecting) left both P2P relays running and the Steam lobby occupied indefinitely.
@@ -121,27 +126,69 @@ Until now there was no way to leave a lobby short of quitting the whole game —
 - [x] Wired into `TitleScreenMixin.init()` — reaching the title screen reliably means whatever world was running (hosted or joined) just closed, and this mixin was already injecting there. Unconditional and safe to call even when nothing was happening: guarded by `lobbyId.isSome()` and null-safe calls throughout, confirmed by a smoke test where Steam itself wasn't even running
 - [x] Verified: `./gradlew build` across all four modules, and a `:fabric:runClient` smoke test confirmed the mixin still applies cleanly (no `MixinApplyError`) and the client reaches the title screen without exception
 
+### M6 (partial): Kick
+`ISteamMatchmaking` has no way for an owner to force a member out (only a self-directed `leaveLobby`), so Kick is enforced at the P2P layer, with a cooperative lobby-chat signal on top so the kicked client finds out immediately rather than timing out.
+
+- [x] `Steamed.kick(peer)` (owner only): adds the peer to `Steamed.kickedPeers`, sends a `steamed:kick:<steamid64>` lobby chat message, then closes that peer's bridges on both relays
+- [x] `SteamNetwork.onP2PSessionRequest` rejects anyone in `kickedPeers` before the lobby-membership check, so a kicked player's client can't just reconnect even if it ignores the signal. The list is cleared on `leaveLobby()`; re-inviting someone from `SteamFriendListScreen` lifts their kick
+- [x] `Steamed.onLobbyChatMessage`: a kick message is only honored if it comes from the current lobby owner and names this client; the kicked client then leaves the lobby and, if it's connected to the lobby's host (matched by the `ServerData` name `connectToHost` uses, so an unrelated singleplayer world is never torn down), disconnects to a "Kicked" `DisconnectedScreen`
+- [x] `screen/SteamKickScreen.kt`: member picker (every lobby member but yourself), same shape as `SteamFriendListScreen`. The lobby screen's Kick button opens it, and is now enabled for the owner whenever there's anyone else in the lobby (it was a no-op, always disabled, before)
+- [x] Found and fixed an existing bug in `SteamInit.onLobbyChatMessage`, found by reading steamworks4j's source: `getLobbyChatEntry` writes at the buffer's current position without advancing it (same quirk as `readP2PPacket`, see M8), but the handler did a relative `get()` and never cleared the buffer, so each message was read from further into the 4 KB buffer until it eventually threw. It now `clear()`s first and reads absolutely. The `String` overload of `sendLobbyChatMsg` also sends `strlen + 1` bytes, so received messages carry a trailing NUL, which is now trimmed
+- [x] `./gradlew build` passes for all four modules
+
+**Not verified**: none of this has run against real Steam yet (the Steam client wasn't running when this was written). Needs a live two-account test: host kicks joiner -> joiner lands on the "Kicked" screen, host's server logs the disconnect, and the joiner's "Join Host" retry is rejected until the host re-invites them.
+
+### M7: Access control
+- [x] **Steam auth ticket handshake** (`net/SteamAuthHandshake.kt`, its own P2P channel 2). Valve's P2P docs don't say whether a P2P sender's SteamID can be spoofed, and the auth docs recommend session tickets for client-to-client auth, so it's done properly rather than trusting the transport:
+  - Joiner: `connectToHost` gets a ticket with `getAuthSessionTicket` and sends it once `onAuthSessionTicket` says it's ready. It then waits up to 20s for an accepted/denied reply, and only after acceptance binds the local listener and opens `ConnectScreen`. A denial or timeout is posted to chat with the host's reason
+  - Host: `SteamNetwork.onP2PSessionRequest` still does the kicked / lobby-member / hosting checks, but accepting a session now only lets the peer reach the handshake. `beginAuthSession` runs on the ticket, and only an OK `onValidateAuthTicket` bridges the peer into the relays (`SteamNetwork.bridgePeer`, the code that used to run directly in `onP2PSessionRequest`). A client that skips the handshake gets nothing, because `SteamP2PRelay` drops channel 0 packets from peers it has no bridge for
+  - A later non-OK `onValidateAuthTicket` for a bridged peer (ticket cancelled, peer logged off) unbridges them. A second ticket from the same peer (a "Join Host" retry) replaces the first session. `endAuthSession`/`cancelAuthTicket` run on kick, P2P connect failure, and `leaveLobby()`
+  - **Wire-incompatible with earlier builds**: an older host never answers the ticket, so a joiner on this build times out with "The host didn't respond"
+- [x] **The published server is no longer reachable from the LAN.** `IntegratedServerMixin` rebinds `publishServer`'s TCP listener to loopback and skips the LAN broadcast (`LanServerPinger`), but only while `Steamed.publishingForSteam` is set around `startP2PGame`'s own publish call. Vanilla "Open to LAN" is untouched. If the player had already opened the world to LAN before creating the lobby, `startP2PGame` reuses that port (it used to advertise a fresh port nothing listened on) and says the world is still on the LAN too
+- [x] Lobby visibility: a Friends / Invite only cycle button next to "Create Lobby" (`LobbyType.FriendsOnly` / `LobbyType.Private`). No public lobbies or lobby browser: decided against, since Steamed is for playing with friends
+- [x] Verified: `./gradlew build` across all modules, and a `:fabric:runClient` quick-play into a singleplayer world, so `IntegratedServer` actually loaded with `IntegratedServerMixin` applied, with no mixin errors. Steam wasn't running, so nothing Steam-side has been exercised
+- [x] **App 480 tickets validate `OK` (2026-10-16)**: a standalone steamworks4j 1.10.0 harness against the real Steam client got a ticket (`getAuthSessionTicket` leaves the buffer at `position=0, limit=size`, so `buffer.get(0, bytes)` is right), `onAuthSessionTicket` returned `OK` with a `SteamAuthTicket` that `equals()` the issued one (steamworks4j compares native handles, so `SteamAuthHandshake`'s `access.ticket != ticket` check works), then `beginAuthSession` -> `OK` and `onValidateAuthTicket` -> `OK`, owner = the ticket's account. Caveat: one account validating its own ticket, not two different accounts
+- [x] A member leaving the lobby (`onLobbyChatUpdate` with any state other than `Entered`) now makes the host end their auth session and close their bridges (`Steamed.onMemberLeft`, sharing `dropPeer` with kick). Before, only kick and P2P connect failure did, so a member who left kept a bridged connection and an open Steam auth session
+
+**Not verified**: the handshake hasn't run between two different accounts. App 480 tickets validate `OK` (see above), so the remaining unknown is the P2P exchange itself. Also, the loopback bind only covers the Minecraft port: Simple Voice Chat runs its own UDP server, which this doesn't touch, so voice is still reachable from the LAN.
+
+### M9 (partial): Release
+- [x] README: per-loader requirements (including the Quilt / Fabric Language Kotlin pairing below) and a Spacewar limitations section
+- [x] License: already consistent (CC0 in `LICENSE`, both `fabric.mod.json`s, and `neoforge.mods.toml`, as settled in M4)
+- [x] `ConnectScreen` now reads "Establishing connection with <name>..." through `ConnectScreenAccessor`, an `@Invoker` on its private `updateStatus`. That targets a method name, not an injection point, so it's less fragile than the options noted before. Vanilla's own later statuses ("Logging in...", etc.) still replace it as the connection progresses
+- [x] **Quilt fix (reported from a real install)**: Fabric Language Kotlin 1.14.x requires `fabricloader >=0.19.5`, and the latest stable Quilt Loader (0.30.1) only provides `fabricloader` 0.19.3 (only the 0.30.2/0.31 betas provide 0.19.5, and the module builds against 0.31.0-beta.4, which is why the build never showed it). The Quilt module now builds against FLK `1.13.14+kotlin.2.4.20` (same Kotlin 2.4.20 stdlib, requires only `>=0.16.9`), its `fabric.mod.json` requires FLK `>=1.13.14`, and the README tells Quilt players which FLK to install
+
+### Lobby lifecycle, packaging, and robustness (unsorted, done while the kick/auth live tests are pending)
+- [x] "Leave Lobby" button in the lobby screen. A joiner connected to the host is also disconnected from the world; the host keeps playing their world, just without the lobby
+- [x] When the owner leaves (the button, or quitting to title via `TitleScreenMixin`), `leaveLobby()` first sends a `steamed:close` lobby chat message. Members then leave and disconnect with "The host closed the Steam lobby" instead of timing out, and Steam never hands ownership to a member who has no world to host. Shares the owner-only chat handling with kick (`Steamed.onLobbyChatMessage`)
+- [x] `onLobbyEnter` checks the enter response: a failed join (full, doesn't exist, not allowed, ...) clears `lobbyId` and says why in chat, instead of carrying on as if inside the lobby
+- [x] Steam's own friends-list "Join Game" (`onGameLobbyJoinRequested`, delivered while Minecraft is already running) joins that lobby. All joins now go through `Steamed.joinLobby`, which leaves any current lobby first
+- [x] Lobby `name` metadata is the world's name instead of a random UUID. The unused `Steamed.lobbies` map is gone
+- [x] Relay race: re-adding a peer (a "Join Host" retry, or an auth handshake retry) used to let the old bridge's send thread tear down the *new* one on exit. Both relays now only clean up if their socket is still the current one for that peer. The joiner also drops its previous voice bridge before rebinding the fixed voice port, which otherwise failed with the port still in use
+- [x] Re-hosting the same world after leaving a lobby no longer claims the world is "also open to your LAN"; it remembers which server Steamed published itself (loopback-only)
+- [x] Mod metadata (version, name, description, authors, license, URLs, contact) now comes from `gradle.properties` and is expanded into both `fabric.mod.json`s and `neoforge.mods.toml` at build time. Checked in all three built jars
+- [x] Fabric's `fabric.mod.json` no longer requires Fabric API (nothing imports it), so Fabric players don't need to install it. Fabric Language Kotlin is required at `>=1.13.14` on both Fabric and Quilt, since the code needs the Kotlin 2.4.20 stdlib
+- [x] `THIRD_PARTY_NOTICES` (steamworks4j's MIT notice, a pointer to Valve's SDK terms for the bundled `steam_api` libraries, and weupnp's LGPL, whose full text is already in its jar) ships in every jar next to `LICENSE_steamed`
+- [x] Verified: `./gradlew build`, and a `:fabric:runClient` quick-play into a world with the templated metadata (loads as `steamed 0.1.0`, no Fabric API needed, no mixin errors). Not live-tested against Steam; `:neoforge:runClient` wasn't re-run after the metadata change
+
+**Needs a live test**: whether Steam delivers the `steamed:close` message when it's sent right before `leaveLobby` (if not, members fall back to the old timeout), and friends-list "Join Game".
+
 ## Planned
 
 ### M6: Lobby management
-- [ ] Implement Kick — note: `ISteamMatchmaking` has no owner-forces-member-out primitive (confirmed via `javap` against the real jar: only `leaveLobby(SteamID)` exists, which is self-directed). A real "Kick" would have to work at the P2P layer instead — close the target's session on both relays and maintain a ban list `SteamNetwork.onP2PSessionRequest` checks, since Steam lobby membership itself can't be revoked by the owner
-- [ ] Lobby browser (`requestLobbyList` with a mod-specific filter, since app 480 is shared)
+- [ ] Live-test Kick (see above). Postponed until a second account is available for testing
 
-### M7: Access control
-- [ ] Auth ticket handshake, so the P2P accept gate isn't just "is a current lobby member" (see M8)
-- [ ] Optional lobby types (private / friends / public)
+### M7 followups
+- [ ] Live two-account test of the auth handshake (see M7 above), including a "Join Host" retry and a kick-then-reconnect attempt
 
 ### M9: Release
-- [ ] Document spacewar limitations
-- [ ] Resolve the license
-- [ ] Replace vanilla `ConnectScreen`'s generic "Connecting to the server..." text with "Establishing connection with <name>...". `ConnectScreen`'s `status` field is private and there's no hook to set it from outside, so this needs either a mixin (fragile — injection points break on MC updates, per the Gotchas above) or a small custom screen instead of calling `ConnectScreen.startConnecting` directly. In the meantime, `connectToHost` posts a chat message naming the host right before `ConnectScreen` opens, as a stopgap
+- [ ] Decide whether to keep weupnp: it's LGPL and only used by the dormant `UPnPublisher` fallback. `THIRD_PARTY_NOTICES` covers it for now, but dropping it (and the fallback) would be simpler
+- [ ] Confirm a real Quilt install actually loads with FLK 1.13.14
 
 ### M11 followups
 - [ ] Live two-account test with a real Simple Voice Chat install: confirm the port value actually flows host -> lobby -> joiner (checkable from logs alone) and, separately, that real voice audio works
-- [ ] If SVC's client doesn't default to "same host as Minecraft" for voice when `voice_host` is blank: have `SvcIntegration` write `voice_host=127.0.0.1` into the host's config, but only when that key is currently blank (never override a deliberate setting) — don't build this speculatively, only after a live test shows it's actually needed
 - [ ] Extend the same per-channel tunneling pattern to other companion mods that open their own port, once SVC itself is confirmed working end to end
 
 ### M10 followups
-- [ ] `jarJar` steamworks4j/steamworks4j-lwjgl3/weupnp into the NeoForge production jar (dev-environment `implementation()` was enough to verify native loading works at all, but isn't how the shipped jar should bundle them)
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
-- [ ] `neoforge.mods.toml`'s version/description/etc. are hardcoded literals mirroring `fabric.mod.json`, same as the original single-module setup — neither actually reads from `gradle.properties` at build time; fine for now but would drift if one gets updated without the other
+- [x] Re-ran `:neoforge:runClient` (2026-10-16) with Steam running: NeoForge loaded the templated `neoforge.mods.toml`, `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed errors

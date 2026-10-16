@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils
 import gay.git.kai.steamed.Steamed
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.CycleButton
 import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
@@ -42,39 +43,50 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
 
         if (!this.isInsideLobby) {
             this.createLobby = topFooterButtons.addChild(Button.builder(Component.literal("Create Lobby"), { self ->
-                Steamed.matchmaking?.createLobby(SteamMatchmaking.LobbyType.FriendsOnly, 20)?.isValid?.let {
+                Steamed.matchmaking?.createLobby(lobbyType, 20)?.isValid?.let {
                     if (!it) {
                         LOGGER.error("Failed to create lobby")
                         return@builder
                     }
                 }
                 self.active = false
-            }).width(230).build())
+            }).width(150).build())
+
+            topFooterButtons.addChild(
+                CycleButton.builder<SteamMatchmaking.LobbyType>({ lobbyTypeName(it) }, lobbyType)
+                    .withValues(SteamMatchmaking.LobbyType.FriendsOnly, SteamMatchmaking.LobbyType.Private)
+                    .displayOnlyValue()
+                    .withTooltip { Tooltip.create(lobbyTypeTooltip(it)) }
+                    .create(0, 0, 76, 20, Component.literal("Visibility")) { _, value -> lobbyType = value }
+            )
 
             if (!this.minecraft.hasSingleplayerServer()) {
                 disableButtons("Load a world first to host a lobby", this.createLobby)
             }
-        } else if (!this.isOwner) {
-            this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
-                Steamed.joinHostedLobby()
-            }).width(230).build())
+        } else {
+            if (!this.isOwner) {
+                this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
+                    Steamed.joinHostedLobby()
+                }).width(113).build())
+            }
+            topFooterButtons.addChild(Button.builder(Component.literal("Leave Lobby"), { `_` -> leaveLobby() })
+                .width(if (this.isOwner) 230 else 113).build())
         }
 
-        this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
-            this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
-        }).width(74).build())
-
-        this.kickButton =
-            bottomFooterButtons.addChild(Button.builder(Component.literal("Kick"), { `_` -> }).width(74).build())
-
-        disableButtons("You are not in a lobby!", this.inviteButton, this.kickButton)
-
         if (this.isInsideLobby) {
-            enableButtons(this.inviteButton, this.kickButton)
+            this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
+                this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
+            }).width(74).build())
+
+            this.kickButton =
+                bottomFooterButtons.addChild(Button.builder(Component.literal("Kick"), { `_` ->
+                    this.minecraft.setScreenAndShow(SteamKickScreen(this))
+                }).width(74).build())
 
             if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton, this.kickButton)
 
-            disableButtons("There are no players in the lobby", this.kickButton)
+            val members = Steamed.matchmaking?.getNumLobbyMembers(Steamed.lobbyId.unwrap()) ?: 0
+            if (this.isOwner && members <= 1) disableButtons("There are no players in the lobby", this.kickButton)
         }
 
         bottomFooterButtons.addChild(
@@ -84,6 +96,16 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         this.repositionElements()
     }
 
+    private fun leaveLobby() {
+        val connectedToHost = Steamed.isConnectedToLobbyHost()
+        Steamed.leaveLobby()
+        if (connectedToHost) {
+            this.minecraft.disconnectFromWorld(Component.literal("Left the Steam lobby"))
+        } else {
+            this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
+        }
+    }
+
     fun disableButtons(message: String, vararg buttons: Button?) {
         for (button in buttons) {
             button?.setTooltip(Tooltip.create(Component.literal(message)))
@@ -91,14 +113,8 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
         }
     }
 
-    fun enableButtons(vararg buttons: Button?) {
-        for (button in buttons) {
-            button?.setTooltip(null)
-            button?.active = true
-        }
-    }
-
-    var ticks = 0
+    // Starts one short of the refresh interval so the member list fills on the first tick.
+    var ticks = 99
 
     override fun tick() {
         super.tick()
@@ -169,5 +185,17 @@ class SteamLobbyScreen(private val lastScreen: Screen?) : Screen(Component.liter
 
     companion object {
         private val LOGGER: Logger = LogUtils.getLogger()
+
+        private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly
+
+        private fun lobbyTypeName(type: SteamMatchmaking.LobbyType): Component = when (type) {
+            SteamMatchmaking.LobbyType.Private -> Component.literal("Invite only")
+            else -> Component.literal("Friends")
+        }
+
+        private fun lobbyTypeTooltip(type: SteamMatchmaking.LobbyType): Component = when (type) {
+            SteamMatchmaking.LobbyType.Private -> Component.literal("Only people you invite can join")
+            else -> Component.literal("Your Steam friends can join, as well as anyone you invite")
+        }
     }
 }

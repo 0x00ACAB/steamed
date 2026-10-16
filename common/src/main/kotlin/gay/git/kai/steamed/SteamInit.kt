@@ -8,6 +8,7 @@ import gay.git.kai.steamed.Steamed.matchmaking
 import gay.git.kai.steamed.Steamed.networking
 import gay.git.kai.steamed.Steamed.user
 import gay.git.kai.steamed.Steamed.userStats
+import gay.git.kai.steamed.net.SteamAuthHandshake
 import gay.git.kai.steamed.net.SteamNetwork
 import gay.git.kai.steamed.net.SteamP2PRelay
 import gay.git.kai.steamed.net.SteamP2PVoiceRelay
@@ -17,6 +18,7 @@ import gay.git.kai.steamed.tasks.SteamFriendsCallbackEx
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
 import net.minecraft.client.input.KeyEvent
+import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -67,9 +69,16 @@ object SteamInit {
         friends = SteamFriends(SteamFriendsCallbackEx())
         matchmaking = SteamMatchmaking(matchmakingCallback)
 
-        networking = SteamNetworking(SteamNetwork())
+        val network = SteamNetwork()
+        networking = SteamNetworking(network)
         Steamed.p2pRelay = SteamP2PRelay(networking!!)
         Steamed.p2pVoiceRelay = SteamP2PVoiceRelay(networking!!)
+        Steamed.authHandshake = SteamAuthHandshake(
+            networking!!, user!!,
+            authorize = network::refusalReason,
+            onAuthenticated = network::bridgePeer,
+            onRevoked = network::unbridgePeer,
+        )
 
         LOGGER.info("Starting steam poller task")
         Steamed.timer = Timer("steam-callback-poller", true)
@@ -90,7 +99,19 @@ object SteamInit {
     }
 
     @JvmField
-    val userCallback: SteamUserCallback = object : SteamUserCallback {}
+    val userCallback: SteamUserCallback = object : SteamUserCallback {
+        override fun onAuthSessionTicket(authTicket: SteamAuthTicket, result: SteamResult) {
+            Steamed.authHandshake?.onAuthSessionTicket(authTicket, result)
+        }
+
+        override fun onValidateAuthTicket(
+            steamID: SteamID,
+            authSessionResponse: SteamAuth.AuthSessionResponse,
+            ownerSteamID: SteamID
+        ) {
+            Steamed.authHandshake?.onValidateAuthTicket(steamID, authSessionResponse)
+        }
+    }
 
     @JvmField
     val userStatsCallback: SteamUserStatsCallback = object : SteamUserStatsCallback {
@@ -107,10 +128,7 @@ object SteamInit {
 
         override fun onLobbyInvite(steamIDUser: SteamID, steamIDLobby: SteamID, gameID: Long) {
             LOGGER.info("Lobby invite received for {} from user {} (game {}), auto-joining", steamIDLobby, steamIDUser.accountID, gameID)
-
-            Steamed.lobbies.put(SteamNativeHandle.getNativeHandle<SteamID?>(steamIDLobby), steamIDLobby)
-            Steamed.lobbyId.some(steamIDLobby)
-            matchmaking?.joinLobby(steamIDLobby)
+            Steamed.joinLobby(steamIDLobby)
         }
 
         override fun onLobbyEnter(
@@ -120,6 +138,15 @@ object SteamInit {
             response: SteamMatchmaking.ChatRoomEnterResponse?
         ) {
             LOGGER.info("Lobby entered: {} (response={})", steamIDLobby, response)
+
+            if (response != SteamMatchmaking.ChatRoomEnterResponse.Success) {
+                if (Steamed.lobbyId.isSome() && Steamed.lobbyId.unwrap() == steamIDLobby) Steamed.lobbyId.some(null)
+                val instance = Minecraft.getInstance()
+                instance.execute {
+                    instance.gui.hud.chat.addClientSystemMessage(Component.literal("Couldn't join the lobby: ${enterFailureReason(response)}"))
+                }
+                return
+            }
 
             val numMembers: Int = matchmaking?.getNumLobbyMembers(steamIDLobby)!!
             LOGGER.info("  - {} members in lobby", numMembers)
@@ -148,6 +175,9 @@ object SteamInit {
                 "Lobby chat update for {}: user {} changed by {} ({})",
                 steamIDLobby, steamIDUserChanged.accountID, steamIDMakingChange.accountID, stateChange.name
             )
+            if (steamIDLobby != null && stateChange != SteamMatchmaking.ChatMemberStateChange.Entered) {
+                Steamed.onMemberLeft(steamIDLobby, steamIDUserChanged)
+            }
         }
 
         override fun onLobbyChatMessage(
@@ -157,18 +187,22 @@ object SteamInit {
             chatID: Int
         ) {
             try {
+                // getLobbyChatEntry writes at the buffer's position without advancing it, same as readP2PPacket
+                chatMessage.clear()
                 val size: Int =
                     matchmaking?.getLobbyChatEntry(steamIDLobby, chatID, chatEntry, chatMessage)!!
 
                 val bytes = ByteArray(size)
-                chatMessage.get(bytes)
+                chatMessage.get(0, bytes)
 
-                val message = String(bytes, messageCharset)
+                val message = String(bytes, messageCharset).trimEnd('\u0000')
 
                 LOGGER.info(
                     "Lobby chat message #{} for {} from {} ({}): \"{}\"",
                     chatID, steamIDLobby, chatEntry.steamIDUser.accountID, chatEntry.chatEntryType, message
                 )
+
+                if (steamIDLobby != null) Steamed.onLobbyChatMessage(steamIDLobby, chatEntry.steamIDUser, message)
             } catch (e: SteamException) {
                 LOGGER.error("Failed to read lobby chat message #{}", chatID, e)
             }
@@ -189,12 +223,6 @@ object SteamInit {
 
         override fun onLobbyMatchList(lobbiesMatching: Int) {
             LOGGER.info("Found {} matching lobbies.", lobbiesMatching)
-
-            Steamed.lobbies.clear()
-            for (i in 0..<lobbiesMatching) {
-                val lobby: SteamID = matchmaking?.getLobbyByIndex(i)!!
-                Steamed.lobbies[SteamNativeHandle.getNativeHandle<SteamID?>(lobby)] = lobby
-            }
         }
 
         override fun onLobbyKicked(
@@ -212,14 +240,12 @@ object SteamInit {
             LOGGER.info("Lobby created: {} (result={})", steamId, result.name)
             if (result != SteamResult.OK) return
 
-            val handle: Long = SteamNativeHandle.getNativeHandle<SteamID?>(steamId)
-            Steamed.lobbies[handle] = steamId
             Steamed.lobbyId.some(steamId)
 
             val instance: Minecraft = Minecraft.getInstance()
             instance.execute {
                 val user: User = instance.user
-                kv(steamId, "name", UUID.randomUUID().toString())
+                kv(steamId, "name", instance.singleplayerServer?.worldData?.levelName ?: "${user.name}'s world")
                 kv(steamId, "max_players", "20")
                 kv(steamId, "owner", user.name)
                 kv(steamId, "owner_uuid", user.profileId.toString())
@@ -232,6 +258,15 @@ object SteamInit {
                 instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
             }
         }
+    }
+
+    private fun enterFailureReason(response: SteamMatchmaking.ChatRoomEnterResponse?): String = when (response) {
+        SteamMatchmaking.ChatRoomEnterResponse.DoesntExist -> "it no longer exists"
+        SteamMatchmaking.ChatRoomEnterResponse.Full -> "it's full"
+        SteamMatchmaking.ChatRoomEnterResponse.NotAllowed -> "you're not allowed in (it may be invite-only)"
+        SteamMatchmaking.ChatRoomEnterResponse.Banned -> "you're banned from it"
+        SteamMatchmaking.ChatRoomEnterResponse.RatelimitExceeded -> "too many attempts, try again shortly"
+        else -> "Steam said ${response?.name ?: "nothing"}"
     }
 
     private fun kv(id: SteamID?, k: String?, v: String?) {

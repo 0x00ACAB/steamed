@@ -32,6 +32,7 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
 
             val invited = Steamed.matchmaking?.inviteUserToLobby(Steamed.lobbyId.unwrap(), entry.steamId) ?: false
             if (invited) {
+                Steamed.unkick(entry.steamId)
                 entry.markInvited()
                 LOGGER.info("Invited {} to the lobby", entry.name)
             } else {

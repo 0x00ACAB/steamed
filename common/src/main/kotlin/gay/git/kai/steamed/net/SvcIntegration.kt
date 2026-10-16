@@ -1,25 +1,31 @@
 package gay.git.kai.steamed.net
 
-import gay.git.kai.steamed.platform.Services
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.util.Properties
 
 object SvcIntegration {
     private val logger: Logger = LoggerFactory.getLogger("SvcIntegration")
-    private const val DEFAULT_PORT = 24454
 
+    // On an integrated server, SVC ignores its configured port and binds an ephemeral one,
+    // so the only reliable source is the running voice server itself:
+    // Voicechat.SERVER (ServerVoiceEvents) -> getServer() (Server) -> getPort().
     fun detectPort(): Int? {
-        val file = File(Services.PLATFORM.gameDir(), "config/voicechat/voicechat-server.properties")
-        if (!file.exists()) return null
+        val voicechat = try {
+            Class.forName("de.maxhenkel.voicechat.Voicechat")
+        } catch (_: ClassNotFoundException) {
+            return null
+        }
 
         return try {
-            val props = Properties()
-            file.inputStream().use { props.load(it) }
-            props.getProperty("port")?.trim()?.toIntOrNull() ?: DEFAULT_PORT
+            val events = voicechat.getField("SERVER").get(null) ?: return null
+            val server = events.javaClass.getMethod("getServer").invoke(events) ?: run {
+                logger.info("Simple Voice Chat is installed but its voice server isn't running")
+                return null
+            }
+            val port = server.javaClass.getMethod("getPort").invoke(server) as Int
+            if (port in 1..65535) port else null
         } catch (e: Exception) {
-            logger.warn("Failed to read Simple Voice Chat's config, assuming it isn't installed", e)
+            logger.warn("Couldn't read Simple Voice Chat's voice server port, voice won't be tunneled", e)
             null
         }
     }

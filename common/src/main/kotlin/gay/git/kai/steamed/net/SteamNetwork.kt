@@ -21,8 +21,8 @@ class SteamNetwork : SteamNetworkingCallback {
         super.onP2PSessionConnectFail(steamIDRemote, sessionError)
         logger.error("Peer-to-peer connection failure: {}", sessionError)
         steamIDRemote?.let {
-            Steamed.p2pRelay?.closePeer(it)
-            Steamed.p2pVoiceRelay?.closePeer(it)
+            Steamed.authHandshake?.endPeer(it)
+            unbridgePeer(it)
         }
     }
 
@@ -30,31 +30,36 @@ class SteamNetwork : SteamNetworkingCallback {
         super.onP2PSessionRequest(steamIDRemote)
         logger.info("Peer-to-peer connection request from {}", steamIDRemote.accountID)
 
-        if (!isLobbyMember(steamIDRemote)) {
-            logger.warn("Rejecting P2P session request from {}, not a member of the current lobby", steamIDRemote.accountID)
+        refusalReason(steamIDRemote)?.let {
+            logger.warn("Rejecting P2P session request from {}: {}", steamIDRemote.accountID, it)
             return
         }
 
-        val port = Steamed.hostedPort
-        val relay = Steamed.p2pRelay
-        if (port == null || relay == null) {
-            logger.warn("Rejecting P2P session request from {}, not currently hosting", steamIDRemote.accountID)
-            return
-        }
-
+        // Accepting only lets the peer reach SteamAuthHandshake; nothing is bridged until its ticket validates.
         Steamed.networking?.acceptP2PSessionWithUser(steamIDRemote)
-        relay.start()
+        Steamed.p2pRelay?.start()
+        Steamed.authHandshake?.start()
+    }
 
-        val mcBridgeOk = try {
+    fun refusalReason(remote: SteamID): String? = when {
+        remote in Steamed.kickedPeers -> "You were kicked from this lobby"
+        !isLobbyMember(remote) -> "You're not in the host's lobby"
+        Steamed.hostedPort == null || Steamed.p2pRelay == null -> "The host isn't hosting a world"
+        else -> null
+    }
+
+    fun bridgePeer(peer: SteamID): Boolean {
+        val port = Steamed.hostedPort ?: return false
+        val relay = Steamed.p2pRelay ?: return false
+
+        try {
             val socket = Socket(InetAddress.getLoopbackAddress(), port)
-            relay.addPeer(steamIDRemote, socket)
-            true
+            relay.addPeer(peer, socket)
         } catch (e: IOException) {
-            logger.error("Failed to open a local bridge connection for {}", steamIDRemote.accountID, e)
-            relay.closePeer(steamIDRemote)
-            false
+            logger.error("Failed to open a local bridge connection for {}", peer.accountID, e)
+            relay.closePeer(peer)
+            return false
         }
-        if (!mcBridgeOk) return
 
         val voicePort = Steamed.hostedVoicePort
         val voiceRelay = Steamed.p2pVoiceRelay
@@ -63,12 +68,18 @@ class SteamNetwork : SteamNetworkingCallback {
                 voiceRelay.start()
                 val voiceSocket = DatagramSocket()
                 voiceSocket.connect(InetAddress.getLoopbackAddress(), voicePort)
-                voiceRelay.addPeer(steamIDRemote, voiceSocket)
+                voiceRelay.addPeer(peer, voiceSocket)
             } catch (e: IOException) {
-                logger.warn("Failed to open a local voice bridge for {}", steamIDRemote.accountID, e)
-                voiceRelay.closePeer(steamIDRemote)
+                logger.warn("Failed to open a local voice bridge for {}", peer.accountID, e)
+                voiceRelay.closePeer(peer)
             }
         }
+        return true
+    }
+
+    fun unbridgePeer(peer: SteamID) {
+        Steamed.p2pVoiceRelay?.closePeer(peer)
+        Steamed.p2pRelay?.closePeer(peer)
     }
 
     private fun isLobbyMember(remote: SteamID): Boolean {
