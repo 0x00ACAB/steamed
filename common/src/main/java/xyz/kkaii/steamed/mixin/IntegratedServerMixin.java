@@ -6,7 +6,9 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.server.LanServerPinger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import xyz.kkaii.steamed.Steamed;
 
 import java.net.InetAddress;
@@ -29,5 +31,11 @@ public class IntegratedServerMixin {
 	)
 	private void steamed$skipLanBroadcast(LanServerPinger pinger, Operation<Void> original) {
 		if (!Steamed.publishingForSteam) original.call(pinger);
+	}
+
+	// Vanilla caps an integrated server at 8 players, below what the lobby may allow.
+	@Inject(method = "getMaxPlayers", at = @At("RETURN"), cancellable = true)
+	private void steamed$lobbyMaxPlayers(CallbackInfoReturnable<Integer> cir) {
+		if (Steamed.hostedMaxPlayers > cir.getReturnValueI()) cir.setReturnValue(Steamed.hostedMaxPlayers);
 	}
 }

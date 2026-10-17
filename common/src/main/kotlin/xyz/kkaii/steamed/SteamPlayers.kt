@@ -2,10 +2,12 @@ package xyz.kkaii.steamed
 
 import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamNativeHandle
+import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FontDescription
 import net.minecraft.network.chat.Style
+import net.minecraft.network.chat.contents.TranslatableContents
 import net.minecraft.network.chat.contents.objects.PlayerSprite
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.component.ResolvableProfile
@@ -54,6 +56,27 @@ object SteamPlayers {
     @Volatile
     private var uuids: Set<UUID> = emptySet()
 
+    // Everyone in uuids since entering the lobby, so a "left the game" line still matches after they've left it.
+    @Volatile
+    private var seen: Set<UUID> = emptySet()
+
+    private val JOIN_LEAVE_KEYS =
+        setOf("multiplayer.player.joined", "multiplayer.player.joined.renamed", "multiplayer.player.left")
+
+    // Vanilla's yellow join/leave line for a Steam joiner, recoloured orange and marked like their nametag.
+    // The name argument is the player's display name, which carries their UUID as its insertion.
+    @JvmStatic
+    fun steamJoinLeave(message: Component): Component {
+        val contents = message.contents as? TranslatableContents ?: return message
+        if (contents.key !in JOIN_LEAVE_KEYS) return message
+        val name = contents.args.firstOrNull() as? Component ?: return message
+        val uuid = parse(name.style.insertion) ?: return message
+        if (uuid !in seen) return message
+        val args = contents.args.copyOf()
+        args[0] = Component.empty().append(ICON).append(" ").append(name)
+        return Component.translatable(contents.key, *args).withStyle(ChatFormatting.GOLD)
+    }
+
     fun publishSelf(lobby: SteamID) {
         Steamed.matchmaking?.setLobbyMemberData(lobby, UUID_KEY, selfUuid())
     }
@@ -77,6 +100,7 @@ object SteamPlayers {
             .filter { it != owner }
             .mapNotNull { memberUuid(lobby, it) }
             .toSet()
+        seen = seen + uuids
     }
 
     fun memberUuid(lobby: SteamID, member: SteamID): UUID? =
@@ -127,5 +151,6 @@ object SteamPlayers {
 
     fun clear() {
         uuids = emptySet()
+        seen = emptySet()
     }
 }

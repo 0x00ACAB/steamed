@@ -39,6 +39,8 @@
   "steamed.lobby.title": "Лобби",
   "steamed.lobby.create": "Создать лобби",
   "steamed.lobby.visibility": "Видимость",
+  "steamed.lobby.max_players": "Макс. игроков",
+  "steamed.lobby.max_players.tooltip": "Сколько людей может быть в лобби, включая вас",
   "steamed.lobby.need_world": "Сначала загрузите мир, чтобы создать лобби",
   "steamed.lobby.join_host": "Подключиться к хосту",
   "steamed.lobby.leave": "Покинуть лобби",

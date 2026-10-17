@@ -59,7 +59,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
         if (!this.isInsideLobby) {
             this.createLobby = topFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.create"), { self ->
                 Steamed.creatingLobbyType = lobbyType
-                Steamed.matchmaking?.createLobby(lobbyType, 20)?.isValid?.let {
+                Steamed.matchmaking?.createLobby(lobbyType, maxPlayers)?.isValid?.let {
                     if (!it) {
                         LOGGER.error("Failed to create lobby")
                         return@builder
@@ -74,6 +74,15 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                     .displayOnlyValue()
                     .withTooltip { Tooltip.create(lobbyTypeTooltip(it)) }
                     .create(0, 0, 76, 20, Component.translatable("steamed.lobby.visibility")) { _, value -> lobbyType = value }
+            )
+
+            bottomFooterButtons.addChild(
+                CycleButton.builder<Int>({ Component.literal(it.toString()) }, maxPlayers)
+                    .withValues(MAX_PLAYER_CHOICES)
+                    .withTooltip { Tooltip.create(Component.translatable("steamed.lobby.max_players.tooltip")) }
+                    .create(0, 0, 152, 20, Component.translatable("steamed.lobby.max_players")) { _, value ->
+                        maxPlayers = value
+                    }
             )
 
             if (!this.minecraft.hasSingleplayerServer()) {
@@ -407,6 +416,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
         private val STATUS_COLOR = ARGB.color(140, 255, 255, 255)
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly
+
+        // Steam's own limit is 250. The host counts as one.
+        private val MAX_PLAYER_CHOICES = listOf(2, 4, 8, 16, 250)
+        private var maxPlayers = 8
 
         // Widens past the default for translations with longer labels.
         private fun rowButton(message: Component, minWidth: Int, onPress: Button.OnPress): Button =

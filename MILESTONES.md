@@ -500,8 +500,13 @@ not, members fall back to the old timeout), and friends-list "Join Game".
 ### M6: Lobby management
 
 - [ ] Live-test Kick (see above). Postponed until a second account is available for testing
-- [ ] Steam join/leave messages: hide vanilla's join/quit lines for Steam joiners and post our own in orange, driven by
-  `onLobbyChatUpdate` (planned 2026-10-17)
+- [x] Steam join/leave messages (2026-10-17): `ChatListenerMixin` rewrites vanilla's `multiplayer.player.joined`/`left`
+  line when the name's UUID (its insertion) belongs to a Steam joiner: orange, with the nametag diamond. Matches against
+  everyone seen in the lobby this session, so the "left" line still matches after they've left the lobby. Mixin
+  confirmed applying in a dev client; the message itself still needs a live two-account test
+- [x] Max players (2026-10-17): a cycle button (2/4/8/16/250, default 8) sets the lobby's member limit. Vanilla caps an
+  integrated server at 8, so `IntegratedServerMixin` raises `getMaxPlayers` to the lobby limit while hosting through
+  Steam (the old fixed 20-member lobby turned away the 8th joiner with "Server full")
 
 ### M7 followups
 

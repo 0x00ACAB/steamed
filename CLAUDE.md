@@ -67,7 +67,8 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   overlay), `screen/SteamConnectingScreen.kt` (shown while the auth handshake runs), `mixin/TitleScreenMixin.java`/
   `AvatarRendererMixin.java` and `PlayerTabOverlayMixin.java` (orange diamond before Steam joiners' name tags and Tab
   list names, glyph from `assets/steamed/font/nametag.json`)/`PauseMenuMixin.java`/`IntegratedServerMixin.java`
-  (loopback-only bind when hosting through Steam)/`ConnectScreenAccessor.java`, `steamed.mixins.json`,
+  (loopback-only bind when hosting through Steam, and lifts vanilla's 8-player cap to the lobby limit)/
+  `ChatListenerMixin.java` (orange join/leave lines for Steam joiners)/`ConnectScreenAccessor.java`, `steamed.mixins.json`,
   `platform/IPlatformHelper.kt`+`Services.kt` (the one thing that needs a per-loader implementation — currently just the
   game directory)
 - `fabric/`: `SteamedFabric.kt` (`ModInitializer`/`ClientModInitializer`, just a log line), `SteamPreLaunchFabric.kt`
@@ -134,6 +135,8 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   `javap`). Both loaders build against the same official-mapped vanilla Minecraft, so signatures found this way apply to
   both
 - Mixin injection points are string-matched; they break on Minecraft updates
+- `IntegratedServer.getMaxPlayers()` is hardcoded to 8. Lobby sizes above that only work because
+  `IntegratedServerMixin` overrides it with `Steamed.hostedMaxPlayers` while hosting
 - `IntegratedServerMixin` makes `publishServer` bind to loopback and skip the LAN broadcast, but only while
   `Steamed.publishingForSteam` is set (around `startP2PGame`'s own publish), so vanilla "Open to LAN" behaves normally.
   A world the player already opened to LAN before creating a lobby stays on the LAN. Voice mods' own UDP servers aren't

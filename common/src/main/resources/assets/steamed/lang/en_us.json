@@ -39,6 +39,8 @@
   "steamed.lobby.title": "Lobby",
   "steamed.lobby.create": "Create Lobby",
   "steamed.lobby.visibility": "Visibility",
+  "steamed.lobby.max_players": "Max players",
+  "steamed.lobby.max_players.tooltip": "How many people can be in the lobby, including you",
   "steamed.lobby.need_world": "Load a world first to host a lobby",
   "steamed.lobby.join_host": "Join Host",
   "steamed.lobby.leave": "Leave Lobby",

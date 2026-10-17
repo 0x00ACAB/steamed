@@ -39,6 +39,8 @@
   "steamed.lobby.title": "Лобі",
   "steamed.lobby.create": "Створити лобі",
   "steamed.lobby.visibility": "Видимість",
+  "steamed.lobby.max_players": "Макс. гравців",
+  "steamed.lobby.max_players.tooltip": "Скільки людей може бути в лобі, включно з вами",
   "steamed.lobby.need_world": "Спершу завантажте світ, щоб створити лобі",
   "steamed.lobby.join_host": "Приєднатися до хоста",
   "steamed.lobby.leave": "Вийти з лобі",

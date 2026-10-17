@@ -81,6 +81,11 @@ object Steamed {
     @Volatile
     var hostedPort: Int? = null
 
+    // The lobby's member limit while hosting, which IntegratedServerMixin uses in place of vanilla's 8.
+    @JvmField
+    @Volatile
+    var hostedMaxPlayers: Int = 0
+
     // UDP ports of voice mods running on the hosted world, tunneled over SteamP2PVoiceRelay.
     @Volatile
     var hostedVoicePorts: List<Int> = emptyList()
@@ -243,6 +248,7 @@ object Steamed {
         SteamPlayers.clear()
         kickedPeers.clear()
         hostedPort = null
+        hostedMaxPlayers = 0
         hostedVoicePorts = emptyList()
         hostedWebMaps = emptyList()
     }
@@ -300,6 +306,7 @@ object Steamed {
         }
 
         hostedPort = port
+        hostedMaxPlayers = matchmaking?.getLobbyMemberLimit(lobbyId.unwrap()) ?: 0
         lobbyWorldStarted = true
         p2pRelay?.start()
 
