@@ -328,10 +328,10 @@ mod.mc_releases = ["26.2"]
 mod.mixins = ["AvatarRendererMixin", "ChatListenerMixin", "ConnectScreenAccessor", "IntegratedServerMixin",
     "PauseMenuMixin", "PlayerTabOverlayMixin", "SplashManagerMixin", "TitleScreenMixin"]
 deps.fabric_api = "0.161.0+26.2"
-deps.neoforge = "26.2.0.88"
+deps.neo = "26.2.0.88"
 meta.minecraft_fabric = "~26.2"
 meta.minecraft_neoforge = "[26.2,26.3)"
-meta.neoforge = "[26.2,)"
+meta.neo = "[26.2,)"
 meta.kff = "[6.4,)"
 ```
 
@@ -1177,10 +1177,10 @@ mod.mixins = ["ChatListenerMixin", "ConnectScreenAccessor", "IntegratedServerMix
     "PauseMenuMixin", "PlayerListMixin", "PlayerRendererMixin", "PlayerTabOverlayMixin", "SplashManagerMixin",
     "TitleScreenMixin"]
 deps.fabric_api = "0.116.17+1.21.1"
-deps.neoforge = "21.1.262"
+deps.neo = "21.1.262"
 meta.minecraft_fabric = ">=1.21 <=1.21.1"
 meta.minecraft_neoforge = "[1.21,1.21.2)"
-meta.neoforge = "[21.1,)"
+meta.neo = "[21.1,)"
 meta.kff = "[5.12,)"
 ```
 
