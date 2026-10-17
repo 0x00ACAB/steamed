@@ -7,21 +7,24 @@ steamworks4j). Progress and plans are in `milestones.md`.
 
 - Minecraft 26.2, Java 25
 - Kotlin 2.4.20 for logic, Java 25 only for mixins
-- Multi-loader: `common`/`fabric`/`neoforge`/`quilt` Gradle modules, source-shared via a hand-rolled `build-logic`
-  convention plugin (not Architectury) — see Layout below
+- Multi-loader and multi-version: Stonecutter 0.9.8 nodes named `<mc>-<loader>` over one `src/` tree, set up after
+  Multicutter's layout (`pajicadvance/multicutter` at `bf13a3b`); Fabric and Quilt go through `dev.kikugie.loom-back-compat`
+  (Fabric Loom 1.18.2). Nodes are declared in `settings.gradle.kts`; each loader has its own `build.<loader>.gradle.kts`
 - Fabric: Fabric Loader 0.19.5, Fabric API (required: nothing imports it, but its resource loader is what loads
   `assets/steamed`; neither Fabric nor Quilt Loader do that alone), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
 - NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle), Kotlin for Forge (required at runtime: nothing
   else provides the Kotlin stdlib, and `runClient` hides that since Gradle puts it on the classpath)
 - Quilt: `org.quiltmc:quilt-loader` plus plain Fabric API (Quilted Fabric API stops at 1.20.1), reusing plain
-  `net.fabricmc.fabric-loom` (not a separate Quilt Loom — see Gotchas)
+  Fabric Loom (not a separate Quilt Loom — see Gotchas)
 - steamworks4j 1.10.0, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge by packing its classes
   and natives straight into the jar (not `jarJar`: NeoForge puts jarJar'd plain libraries in a separate "FML Plugins"
   class loader, and JNI only binds natives for classes in the loader that called `System.load`). `SteamNatives` loads
   the natives itself rather than through steamworks4j's LWJGL loader, for the same reason
-- Versions live in `gradle.properties`, and so does the mod's metadata (`mod_*` keys): `multiloader-loader` expands them
-  into `fabric.mod.json`/`neoforge.mods.toml`, so edit the properties, not those files. Gradle reads the file as
-  ISO-8859-1, so non-ASCII needs `\u` escapes
+- Versions live in `stonecutter.properties.toml` (per-version keys under `["<mc>"]` sections), and so does the mod's
+  metadata (`mod.*` keys): each `build.<loader>.gradle.kts` expands them into `fabric.mod.json`, `neoforge.mods.toml`,
+  `steamed.mixins.json` (Java level, mixin list) and the `IPlatformHelper` service file, so edit the TOML, not those
+  files. A dotted key segment equal to a node tag (`fabric`, `neoforge`, `quilt`, a Minecraft version) is read as a
+  tag section and vanishes, hence `deps.neo`, not `deps.neoforge`
 
 ## Release
 
@@ -31,35 +34,37 @@ steamworks4j). Progress and plans are in `milestones.md`.
 
 ## Commands
 
-- `./gradlew build` builds every module, including `common` on its own (harmless — it can build standalone since it also
-  applies `net.neoforged.moddev` for its own compile-time Minecraft access). `./gradlew :fabric:build` /
-  `:neoforge:build` / `:quilt:build` builds just one platform's jar
-- `./gradlew :fabric:runClient` / `:neoforge:runClient` / `:quilt:runClient` launches a dev client for that loader (the Steam client must be
-  running). NeoForge's first run populates its own asset cache separately from Fabric's and takes a while; later runs
-  are fast. `runClient` always needs a specific `:module` target —
-  there's no meaningful root-level one
+- `./gradlew build` builds and tests every node; `./gradlew :26.2-fabric:build` (or any other node name) builds one.
+  Jars land in `versions/<node>/build/libs/steamed-<loader>-<version>+<mc>.jar`
+- `./gradlew :26.2-fabric:runClient` / `:26.2-neoforge:runClient` / `:26.2-quilt:runClient` launches a dev client for
+  that node (the Steam client must be running), with its game directory in `run/<node>/`. NeoForge's first run
+  populates its own asset cache separately from Fabric's and takes a while; later runs are fast
+- The checked-in active node (the one `src/` is written for) is `26.2-fabric`. Switching nodes rewrites `src/`, so
+  switch back before committing (`./gradlew tasks --group stonecutter` lists the tasks)
 
-GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag
-`v<mod_version>` (it must match `gradle.properties`, or the build fails) also publishes a GitHub pre-release with the
-jars, using `.github/release-notes/<tag>.md` as the notes (GitHub's generated notes if that file is missing); release immutability is on, so the job drafts, attaches, then publishes. The same job then uploads one Modrinth version per loader
-(`<version>+<loader>`, beta, the release notes as the changelog; Fabric and Quilt require Fabric API and FLK, NeoForge
-requires Kotlin for Forge) to
-project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret
+GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads every node's jar as one artifact. Pushing a
+tag `v<mod.version>` (it must match `stonecutter.properties.toml`, or the build fails) also publishes a GitHub
+pre-release with the jars, using `.github/release-notes/<tag>.md` as the notes (GitHub's generated notes if that file is
+missing); release immutability is on, so the job drafts, attaches, then publishes. The same job then runs
+`.github/scripts/modrinth.sh`, which uploads one Modrinth version per jar (`<version>+<mc>-<loader>`, beta, game
+versions from the node's `mod.mc_releases`, the release notes as the changelog; Fabric and Quilt require Fabric API and
+FLK, NeoForge requires Kotlin for Forge) to project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret. `DRY_RUN=1`
+prints the payloads instead, for testing against local jars
 
-`.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew classes`
-build, since Kotlin can't use build-mode none) and `actions`. CodeQL's Kotlin support currently ends at 2.4.20, so check it
+`.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew :26.2-fabric:classes`
+build of single nodes, to stay inside the heap, since Kotlin can't use build-mode none) and `actions`. CodeQL's Kotlin support currently ends at 2.4.20, so check it
 before bumping Kotlin. `.github/dependabot.yml` covers GitHub Actions and the Gradle versions in build files; it can't
-see `gradle.properties`, and ignores Kotlin bumps (they have to move together with FLK)
+see `stonecutter.properties.toml`, and ignores Kotlin bumps (they have to move together with FLK)
 
-`./gradlew :common:test` runs the unit tests (JUnit 5 via `kotlin("test")`, in `common/src/test`, also part of `build`
-and CI). They cover pure logic only, pulled into small `internal` objects (`net/WebMapConfig.kt`, `net/VoicePorts.kt`,
+`./gradlew :26.2-fabric:test` runs the unit tests (JUnit 5 via `kotlin("test")`, in `src/test`; `build` runs them on
+every node, and so does CI). They cover pure logic only, pulled into small `internal` objects (`net/WebMapConfig.kt`, `net/VoicePorts.kt`,
 `net/WebMapList.kt`); anything touching Steam or Minecraft at runtime still needs a dev client.
 
 ## Layout
 
-Base package `xyz.kkaii.steamed` throughout. Four modules:
+Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,java,resources}` and `src/test`:
 
-- `common/`: almost everything — `Steamed.kt` (a plain `object`: Steam interface refs, lobby state, `startP2PGame()`/
+- Shared code (everything but the loader packages) — `Steamed.kt` (a plain `object`: Steam interface refs, lobby state, `startP2PGame()`/
   `connectToHost()`/`joinHostedLobby()`), `SteamNatives.kt` (extracts and `System.load`s steamworks4j's natives), `SteamInit.kt` (Steam init sequence + all matchmaking callbacks, was
   `entrypoint/PreLaunch.kt` before the multi-loader split), `net/SteamP2PRelay.kt` (generic TCP<->Steam P2P bridge, the
   Minecraft transport, channel 0), `net/SteamP2PVoiceRelay.kt` (UDP sibling on channel 1, tunnels voice-mod traffic,
@@ -80,21 +85,19 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   `ChatListenerMixin.java` (orange join/leave lines for Steam joiners)/`ConnectScreenAccessor.java`, `steamed.mixins.json`,
   `platform/IPlatformHelper.kt`+`Services.kt` (the one thing that needs a per-loader implementation — currently just the
   game directory)
-- `fabric/`: `SteamedFabric.kt` (`ModInitializer`/`ClientModInitializer`, just a log line), `SteamPreLaunchFabric.kt`
+- `fabric/` (package `xyz.kkaii.steamed.fabric`): `SteamedFabric.kt` (`ModInitializer`/`ClientModInitializer`, just a log line), `SteamPreLaunchFabric.kt`
   (`PreLaunchEntrypoint`, calls `SteamInit.initSteam()`), `FabricPlatformHelper.kt`, `fabric.mod.json`
-- `neoforge/`: `SteamedNeoForge.kt` (`@Mod` class — its constructor is the earliest hook NeoForge offers, calls
+- `neoforge/` (package `xyz.kkaii.steamed.neoforge`): `SteamedNeoForge.kt` (`@Mod` class — its constructor is the earliest hook NeoForge offers, calls
   `SteamInit.initSteam()` there; also listens for `FMLClientSetupEvent` for the same log line Fabric's
   `ClientModInitializer` prints), `NeoForgePlatformHelper.kt`, `neoforge.mods.toml`
-- `quilt/`: mirrors `fabric/` almost exactly (`SteamedQuilt.kt`, `SteamPreLaunchQuilt.kt`, `QuiltPlatformHelper.kt`, its
-  own `fabric.mod.json` — Quilt Loader reads that format directly, no `quilt.mod.json` needed) — kept as separate files
+- `quilt/` (package `xyz.kkaii.steamed.quilt`): mirrors `fabric/` almost exactly (`SteamedQuilt.kt`, `SteamPreLaunchQuilt.kt`, `QuiltPlatformHelper.kt`, and the shared
+  `fabric.mod.json` template, with Quilt's entrypoints — Quilt Loader reads that format directly, no `quilt.mod.json` needed) — kept as separate files
   rather than sharing Fabric's, since they're tiny and this avoids new cross-module sharing complexity for two modules
   that could plausibly diverge later
-- `build-logic/`: two convention plugins — `multiloader-common` (java-library + kotlin toolchain, shared by all four
-  modules) and `multiloader-loader` (applied by `fabric`/`neoforge`/`quilt`; pulls `common`'s raw source files directly
-  into that platform's own `compileKotlin`/`compileJava`/`processResources` tasks via `commonJava`/`commonResources`
-  outgoing configurations on `common`). This means common code is recompiled per-platform, not consumed as a binary
-  jar — deliberate: it's why steamworks4j only needs bundling once per platform, with each platform's own already-proven
-  mechanism, instead of needing a shared strategy that works identically across different loaders' jar-in-jar systems
+- Each node compiles only its own loader's package: the other two are excluded in its build script's `sourceSets.main`
+  block. Shared resources are templated per node (see Stack)
+- `settings.gradle.kts` (nodes), `stonecutter.gradle.kts` (active node, tags, constants), `stonecutter.properties.toml`,
+  `build.fabric.gradle.kts`/`build.neoforge.gradle.kts`/`build.quilt.gradle.kts`
 
 ## How it works
 
@@ -125,7 +128,7 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
 - Check `Steamed.lobbyId.isSome()` before `unwrap()`, which throws when empty
 - Steam callbacks fire from the poller thread; hop to the client thread before touching Minecraft state
 - Client-only mod: do not reference server-only classes
-- New code goes in `common` unless it genuinely needs a loader-specific API (check by grepping for `net.fabricmc`/
+- New code goes in the shared packages unless it genuinely needs a loader-specific API (check by grepping for `net.fabricmc`/
   `net.neoforged` before assuming something needs a platform split — most things don't; steamworks4j and vanilla
   Minecraft APIs are both loader-agnostic already). If it does, add the platform-specific piece behind
   `IPlatformHelper`/`Services` rather than reaching for a whole new abstraction layer
@@ -140,8 +143,8 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   `extractRenderState`; `Minecraft.screen` is gone — current screen is `Minecraft.gui.screen()`, set with
   `Minecraft.setScreenAndShow(Screen)` or, for a nullable close, `Minecraft.gui.setScreen(Screen?)`; chat is
   `Minecraft.gui.hud.chat`, not `Minecraft.gui.chat`). Don't trust older tutorials — run
-  `./gradlew :fabric:genSourcesWithVineflower` and read the real decompiled source under
-  `fabric/.gradle/loom-cache/minecraftMaven/.../*-sources.jar` (much faster than reconstructing signatures from
+  `./gradlew :26.2-fabric:genSourcesWithVineflower` and read the real decompiled source under
+  Loom's cache (`find ~/.gradle/caches -name '*26.2*sources*.jar'`) (much faster than reconstructing signatures from
   `javap`). Both loaders build against the same official-mapped vanilla Minecraft, so signatures found this way apply to
   both
 - `runClient` puts every library on one classpath, so it hides packaging bugs: 0.1.3's NeoForge jar crashed on a real
@@ -182,12 +185,11 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   for anything else sharing that row. Don't add a widget and toggle `.visible` to hide it if something else might be
   centered alongside it in the same `LinearLayout`; only add the widget that should actually be there (see
   `SteamLobbyScreen`'s "Create Lobby"/"Join Host" toggle)
-- For multi-loader Gradle specifics (exact plugin/version choices, why not Architectury, the `commonJava`/
-  `commonResources` source-sharing mechanism), don't guess from generic tutorials — the WFPhantom/MultiLoader-Template
-  GitHub repo has a `26.2` branch that was verified working and is what this project's `build-logic` is adapted from
-- `:quilt:runClient` runs Quilt Loader under plain Fabric Loom, which only knows Fabric Loader. `quilt/build.gradle.kts`
+- For multi-loader/multi-version Gradle specifics, don't guess from generic tutorials — Multicutter
+  (`pajicadvance/multicutter`, commit `bf13a3b`) builds 1.21.1 and 26.x on Fabric and NeoForge with the same plugins
+- `:26.2-quilt:runClient` runs Quilt Loader under plain Fabric Loom, which only knows Fabric Loader. `build.quilt.gradle.kts`
   patches the gaps: excludes FLK's transitive `fabric-loader` from the runtime classpath (same package, different
   signer: `SecurityException`), adds quilt-loader's libraries by hand (its POM declares none; they're only in its
   `quilt_installer.json`), sets the run's main class to Quilt's `KnotClient`, and passes `loader.development`/
-  `loader.classPathGroups` (Quilt ignores Loom's `fabric.*` properties). Bumping `quilt_loader_version` means re-checking
+  `loader.classPathGroups` (Quilt ignores Loom's `fabric.*` properties). Bumping `deps.quilt_loader` means re-checking
   that JSON's library list
