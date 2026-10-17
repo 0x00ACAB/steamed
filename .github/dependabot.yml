@@ -19,3 +19,9 @@ updates:
     ignore:
       # Has to match the Kotlin that fabric_kotlin_version bundles, and CodeQL's supported range.
       - dependency-name: "org.jetbrains.kotlin*"
+      # Mixin, MixinExtras, ASM and Quilt's own libraries: the loaders ship these, and quilt/build.gradle.kts pins
+      # them to quilt_installer.json's list.
+      - dependency-name: "io.github.llamalad7*"
+      - dependency-name: "net.fabricmc:sponge-mixin"
+      - dependency-name: "org.ow2.asm*"
+      - dependency-name: "org.quiltmc*"

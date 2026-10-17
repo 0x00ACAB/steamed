@@ -47,8 +47,12 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
 
       # In-process Kotlin compilation so the extractor sees kotlinc, rather than a Kotlin daemon started elsewhere.
+      # That puts every module's compile in Gradle's own heap, which gradle.properties' 1G can't hold.
       - if: matrix.build-mode == 'manual'
-        run: ./gradlew classes --no-daemon -Pkotlin.compiler.execution.strategy=in-process
+        run: >-
+          ./gradlew classes --no-daemon --max-workers=2
+          -Dorg.gradle.jvmargs=-Xmx6g
+          -Pkotlin.compiler.execution.strategy=in-process
 
       - uses: github/codeql-action/analyze@v4
         with:
