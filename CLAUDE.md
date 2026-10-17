@@ -38,8 +38,8 @@ steamworks4j). Progress and plans are in `milestones.md`.
 
 GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag
 `v<mod_version>` (it must match `gradle.properties`, or the build fails) also publishes a GitHub pre-release with the
-jars; release immutability is on, so the job drafts, attaches, then publishes. The same job then uploads one Modrinth version per loader
-(`<version>+<loader>`, beta, GitHub's generated notes as the changelog; Fabric and Quilt require Fabric API and FLK) to
+jars, using `.github/release-notes/<tag>.md` as the notes (GitHub's generated notes if that file is missing); release immutability is on, so the job drafts, attaches, then publishes. The same job then uploads one Modrinth version per loader
+(`<version>+<loader>`, beta, the release notes as the changelog; Fabric and Quilt require Fabric API and FLK) to
 project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret
 
 `.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew classes`

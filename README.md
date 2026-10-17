@@ -34,13 +34,17 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
   now, with a Join button
 - **Only the people you invite.** Lobbies are friends-only or invite-only. Every joiner proves who they are with a Steam
   auth ticket before they can reach your world, and your world isn't opened to your LAN while you host through Steam
-- **Lobby management.** Kick players, leave the lobby, and everyone is disconnected cleanly when the host closes it
+- **Lobby management.** Kick players, pick a max player count (2 to 250), leave the lobby, and everyone is disconnected
+  cleanly when the host closes it
 - **Voice chat comes along.** [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat)
   and [Plasmo Voice](https://modrinth.com/plugin/plasmo-voice) are tunnelled over Steam too, with no extra setup
 - **Web maps come along too.** If you run [BlueMap](https://modrinth.com/plugin/bluemap)
   or [squaremap](https://modrinth.com/plugin/squaremap), joiners get a chat link that opens your map through Steam
 - **See who came in through Steam.** Players who joined through the Steam lobby get an orange diamond before their name
-  tag, handy when Steam and LAN players share a world
+  tag and in the Tab list, and their join/leave messages are orange, handy when Steam and LAN players share a world
+- **Copes with Steam not running.** Start Steam whenever and hit retry in the lobby screen; if Steam quits mid-game,
+  you're told why instead of just losing the connection
+- **Translated** into English, Polish, German, Ukrainian and Russian
 - **Works without the Steam overlay.** Invites use an in-game friend picker, so they work even when the overlay doesn't
   show up in Minecraft
 
@@ -75,7 +79,7 @@ connection to your world. To Minecraft on both sides it looks like an ordinary l
 | **NeoForge**             | NeoForge 26.2, nothing else (Kotlin is bundled)                                                      |
 | **Quilt** (experimental) | Fabric API (the regular one; Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
 
-Everyone in a lobby needs the same version of Steamed.
+Everyone in a lobby needs the same version of Steamed and of Minecraft.
 
 ## Good to know
 
