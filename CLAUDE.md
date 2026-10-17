@@ -42,6 +42,11 @@ jars; release immutability is on, so the job drafts, attaches, then publishes. T
 (`<version>+<loader>`, beta, GitHub's generated notes as the changelog; Fabric and Quilt require Fabric API and FLK) to
 project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret
 
+`.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew classes`
+build, since Kotlin can't use build-mode none) and `actions`. CodeQL's Kotlin support currently ends at 2.4.20, so check it
+before bumping Kotlin. `.github/dependabot.yml` covers GitHub Actions and the Gradle versions in build files; it can't
+see `gradle.properties`, and ignores Kotlin bumps (they have to move together with FLK)
+
 `./gradlew :common:test` runs the unit tests (JUnit 5 via `kotlin("test")`, in `common/src/test`, also part of `build`
 and CI). They cover pure logic only, pulled into small `internal` objects (`net/WebMapConfig.kt`, `net/VoicePorts.kt`,
 `net/WebMapList.kt`); anything touching Steam or Minecraft at runtime still needs a dev client.

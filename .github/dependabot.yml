@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: [ "*" ]
+
+  # Only sees versions written in build files (steamworks4j, plugins, the wrapper). The Minecraft-pinned ones in
+  # gradle.properties (loader, NeoForge, Fabric API, FLK) are bumped by hand with each Minecraft update.
+  - package-ecosystem: gradle
+    directories:
+      - /
+      - /build-logic
+    schedule:
+      interval: weekly
+    ignore:
+      # Has to match the Kotlin that fabric_kotlin_version bundles, and CodeQL's supported range.
+      - dependency-name: "org.jetbrains.kotlin*"

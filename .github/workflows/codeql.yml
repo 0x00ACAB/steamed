@@ -1,0 +1,55 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Kotlin needs a real compile (no build-mode none). CodeQL supports Kotlin up to 2.4.20; check
+          # https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/ before bumping it.
+          - language: java-kotlin
+            build-mode: manual
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v7
+
+      - if: matrix.build-mode == 'manual'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - if: matrix.build-mode == 'manual'
+        uses: gradle/actions/setup-gradle@v6
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # In-process Kotlin compilation so the extractor sees kotlinc, rather than a Kotlin daemon started elsewhere.
+      - if: matrix.build-mode == 'manual'
+        run: ./gradlew classes --no-daemon -Pkotlin.compiler.execution.strategy=in-process
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
