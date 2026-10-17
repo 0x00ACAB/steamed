@@ -23,7 +23,7 @@ public class PauseMenuMixin extends Screen {
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/layouts/GridLayout;arrangeElements()V", shift = At.Shift.BEFORE)
 	)
 	private void createPauseMenu(CallbackInfo ci, @Local(name = "helper") GridLayout.RowHelper helper) {
-		Button lobbyButton = Button.builder(Component.literal("Steam Lobby"), _ ->
+		Button lobbyButton = Button.builder(Component.translatable("steamed.lobby.button"), _ ->
 				this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen()))
 		).width(204).build();
 		helper.addChild(lobbyButton, 2);

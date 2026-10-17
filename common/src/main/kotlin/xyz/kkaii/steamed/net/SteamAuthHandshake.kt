@@ -14,13 +14,23 @@ private const val MSG_ACCEPTED: Byte = 2
 private const val MSG_DENIED: Byte = 3
 private const val ACCESS_TIMEOUT_MS = 20_000L
 
+// A refusal: a translation key plus its arguments, newline-separated on the wire. Older hosts send plain English,
+// which renders as-is through translatableWithFallback.
+data class Denial(val key: String, val args: List<String> = emptyList()) {
+    fun encode(): String = (listOf(key) + args).joinToString("\n")
+
+    companion object {
+        fun decode(text: String): Denial = text.split('\n').let { Denial(it.first(), it.drop(1)) }
+    }
+}
+
 // Steam session ticket exchange on its own channel. The joiner sends a ticket and waits; the host only
 // bridges a peer into the relays once Steam validates that ticket, so channel 0 traffic from anyone
 // who skipped this is dropped by SteamP2PRelay (it has no bridge to deliver it to).
 class SteamAuthHandshake(
     private val networking: SteamNetworking,
     private val user: SteamUser,
-    // Host side: null to allow, otherwise the reason to refuse. Checked when a ticket arrives.
+    // Host side: null to allow, otherwise the reason's translation key. Checked when a ticket arrives.
     private val authorize: (SteamID) -> String?,
     // Host side: bridge an authenticated peer into the relays. Returns the payload for the
     // accepted reply, or null if bridging failed.
@@ -33,7 +43,7 @@ class SteamAuthHandshake(
     private class PendingAccess(
         val host: SteamID,
         val onAccepted: (ByteArray) -> Unit,
-        val onDenied: (String) -> Unit,
+        val onDenied: (Denial) -> Unit,
     ) {
         @Volatile
         var ticket: SteamAuthTicket? = null
@@ -66,10 +76,10 @@ class SteamAuthHandshake(
     }
 
     // Joiner side. Exactly one of the callbacks runs, from a background thread.
-    fun requestAccess(host: SteamID, onAccepted: (ByteArray) -> Unit, onDenied: (String) -> Unit) {
+    fun requestAccess(host: SteamID, onAccepted: (ByteArray) -> Unit, onDenied: (Denial) -> Unit) {
         start()
         cancelTicket()
-        pending?.let { settle(it) { it.onDenied("Superseded by a newer connection attempt") } }
+        pending?.let { settle(it) { it.onDenied(Denial("steamed.auth.superseded")) } }
 
         val access = PendingAccess(SteamID(host), onAccepted, onDenied)
         pending = access
@@ -94,14 +104,14 @@ class SteamAuthHandshake(
             ticket
         }
         if (ticket == null || !ticket.isValid) {
-            settle(access) { access.onDenied("Couldn't create a Steam auth ticket") }
+            settle(access) { access.onDenied(Denial("steamed.auth.no_ticket")) }
             return
         }
         // The ticket is sent from onAuthSessionTicket, once Steam says it's ready to be validated.
 
         thread(name = "steamed-p2p-auth-timeout", isDaemon = true) {
             Thread.sleep(ACCESS_TIMEOUT_MS)
-            settle(access) { access.onDenied("The host didn't respond") }
+            settle(access) { access.onDenied(Denial("steamed.auth.no_response")) }
         }
     }
 
@@ -111,7 +121,7 @@ class SteamAuthHandshake(
 
         if (result != SteamResult.OK) {
             logger.error("Steam auth ticket failed: {}", result)
-            settle(access) { access.onDenied("Steam refused to issue an auth ticket ($result)") }
+            settle(access) { access.onDenied(Denial("steamed.auth.ticket_refused", listOf(result.name))) }
             return
         }
 
@@ -127,7 +137,7 @@ class SteamAuthHandshake(
             logger.warn("Auth ticket for {} is no longer valid: {}", peer.accountID, response)
             val wasBridged = bridged.remove(peer)
             endSession(peer)
-            if (wasBridged) onRevoked(peer) else deny(peer, "Steam rejected your auth ticket ($response)")
+            if (wasBridged) onRevoked(peer) else deny(peer, Denial("steamed.auth.ticket_rejected", listOf(response.name)))
             return
         }
 
@@ -135,7 +145,7 @@ class SteamAuthHandshake(
         val acceptance = onAuthenticated(peer)
         if (acceptance == null) {
             endSession(peer)
-            deny(peer, "The host couldn't open a connection to its world")
+            deny(peer, Denial("steamed.auth.bridge_failed"))
             return
         }
 
@@ -170,7 +180,7 @@ class SteamAuthHandshake(
                 MSG_TICKET -> onTicket(SteamID(sender), payload)
                 MSG_ACCEPTED -> fromHost(sender)?.let { settle(it) { it.onAccepted(payload) } }
                 MSG_DENIED -> fromHost(sender)?.let {
-                    val reason = String(payload, StandardCharsets.UTF_8)
+                    val reason = Denial.decode(String(payload, StandardCharsets.UTF_8))
                     settle(it) { it.onDenied(reason) }
                 }
 
@@ -184,7 +194,7 @@ class SteamAuthHandshake(
     private fun onTicket(peer: SteamID, ticket: ByteArray) {
         authorize(peer)?.let {
             logger.warn("Refusing auth ticket from {}: {}", peer.accountID, it)
-            deny(peer, it)
+            deny(peer, Denial(it))
             return
         }
 
@@ -206,7 +216,7 @@ class SteamAuthHandshake(
 
         if (result != SteamAuth.BeginAuthSessionResult.OK) {
             logger.warn("Refusing auth ticket from {}: {}", peer.accountID, result)
-            deny(peer, "Invalid Steam auth ticket (${result ?: "error"})")
+            deny(peer, Denial("steamed.auth.invalid_ticket", listOf(result?.name ?: "error")))
             return
         }
 
@@ -214,8 +224,8 @@ class SteamAuthHandshake(
         logger.info("Validating auth ticket from {}", peer.accountID)
     }
 
-    private fun deny(peer: SteamID, reason: String) {
-        send(peer, MSG_DENIED, reason.toByteArray(StandardCharsets.UTF_8))
+    private fun deny(peer: SteamID, reason: Denial) {
+        send(peer, MSG_DENIED, reason.encode().toByteArray(StandardCharsets.UTF_8))
     }
 
     private fun send(peer: SteamID, type: Byte, payload: ByteArray) {
@@ -255,7 +265,7 @@ class SteamAuthHandshake(
     }
 
     fun stop() {
-        pending?.let { settle(it) { it.onDenied("Left the lobby") } }
+        pending?.let { settle(it) { it.onDenied(Denial("steamed.auth.left_lobby")) } }
         cancelTicket()
         sessions.toList().forEach { endSession(it) }
         bridged.clear()

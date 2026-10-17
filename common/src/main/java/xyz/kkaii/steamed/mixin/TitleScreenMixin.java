@@ -34,11 +34,11 @@ public class TitleScreenMixin extends Screen {
 		Steamed.INSTANCE.onTitleScreen();
 		SteamPlayers.INSTANCE.publishPresence();
 
-		String message = Steamed.friends == null ? "Not logged into Steam" : String.format("Logged in as %s", Steamed.friends.getPersonaName());
+		Component message = Steamed.friends == null ? Component.translatable("steamed.title.not_logged_in") : Component.translatable("steamed.title.logged_in", Steamed.friends.getPersonaName());
 		TitleScreen thisObject = (TitleScreen) (Object) this;
 		int width = this.font.width(message);
 		int x = this.width - width - 2;
-		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 32, width, 15, Component.literal(message), _ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen())), this.font));
+		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 32, width, 15, message, _ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen())), this.font));
 
 		steamed$addLobbyButton();
 	}
@@ -50,7 +50,7 @@ public class TitleScreenMixin extends Screen {
 			if (child instanceof AbstractWidget widget
 					&& widget.getMessage().getContents() instanceof TranslatableContents contents
 					&& contents.getKey().equals("menu.multiplayer")) {
-				Component label = Component.literal("Steam Lobby");
+				Component label = Component.translatable("steamed.lobby.button");
 				ImageButton button = new ImageButton(
 						widget.getX() + widget.getWidth() + 4, widget.getY(), 20, 20, STEAMED_LOBBY_SPRITES,
 						_ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this)), label

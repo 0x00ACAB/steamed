@@ -500,6 +500,8 @@ not, members fall back to the old timeout), and friends-list "Join Game".
 ### M6: Lobby management
 
 - [ ] Live-test Kick (see above). Postponed until a second account is available for testing
+- [ ] Steam join/leave messages: hide vanilla's join/quit lines for Steam joiners and post our own in orange, driven by
+  `onLobbyChatUpdate` (planned 2026-10-17)
 
 ### M7 followups
 

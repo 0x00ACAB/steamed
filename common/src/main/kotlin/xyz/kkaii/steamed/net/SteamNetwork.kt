@@ -42,9 +42,9 @@ class SteamNetwork : SteamNetworkingCallback {
     }
 
     fun refusalReason(remote: SteamID): String? = when {
-        remote in Steamed.kickedPeers -> "You were kicked from this lobby"
-        !isLobbyMember(remote) -> "You're not in the host's lobby"
-        Steamed.hostedPort == null || Steamed.p2pRelay == null -> "The host isn't hosting a world"
+        remote in Steamed.kickedPeers -> "steamed.auth.kicked"
+        !isLobbyMember(remote) -> "steamed.auth.not_member"
+        Steamed.hostedPort == null || Steamed.p2pRelay == null -> "steamed.auth.not_hosting"
         else -> null
     }
 

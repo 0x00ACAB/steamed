@@ -14,6 +14,7 @@ import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
+import net.minecraft.client.resources.language.I18n
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.util.ARGB
@@ -25,7 +26,7 @@ import xyz.kkaii.steamed.Steamed
 import xyz.kkaii.steamed.platform.Services
 import java.util.*
 
-class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobby")) {
+class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable("steamed.lobby.title")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
     private var inviteButton: Button? = null
     private var createLobby: Button? = null
@@ -56,7 +57,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         val bottomFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))
 
         if (!this.isInsideLobby) {
-            this.createLobby = topFooterButtons.addChild(Button.builder(Component.literal("Create Lobby"), { self ->
+            this.createLobby = topFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.create"), { self ->
                 Steamed.creatingLobbyType = lobbyType
                 Steamed.matchmaking?.createLobby(lobbyType, 20)?.isValid?.let {
                     if (!it) {
@@ -72,27 +73,27 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                     .withValues(SteamMatchmaking.LobbyType.FriendsOnly, SteamMatchmaking.LobbyType.Private)
                     .displayOnlyValue()
                     .withTooltip { Tooltip.create(lobbyTypeTooltip(it)) }
-                    .create(0, 0, 76, 20, Component.literal("Visibility")) { _, value -> lobbyType = value }
+                    .create(0, 0, 76, 20, Component.translatable("steamed.lobby.visibility")) { _, value -> lobbyType = value }
             )
 
             if (!this.minecraft.hasSingleplayerServer()) {
-                disableButtons("Load a world first to host a lobby", this.createLobby)
+                disableButtons(Component.translatable("steamed.lobby.need_world"), this.createLobby)
             }
         } else {
             if (!this.isOwner) {
-                this.joinButton = topFooterButtons.addChild(Button.builder(Component.literal("Join Host"), { `_` ->
+                this.joinButton = topFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.join_host"), { `_` ->
                     Steamed.joinHostedLobby()
                 }).width(113).build())
             }
             topFooterButtons.addChild(
-                Button.builder(Component.literal("Leave Lobby"), { `_` -> leaveLobby() })
+                Button.builder(Component.translatable("steamed.lobby.leave"), { `_` -> leaveLobby() })
                     .width(if (this.isOwner) 230 else 113).build()
             )
 
-            this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.literal("Invite"), { `_` ->
+            this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.invite"), { `_` ->
                 this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
             }).width(113).build())
-            if (!this.isOwner) disableButtons("You are not the lobby owner", this.inviteButton)
+            if (!this.isOwner) disableButtons(Component.translatable("steamed.lobby.not_owner"), this.inviteButton)
         }
 
         bottomFooterButtons.addChild(
@@ -107,15 +108,15 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
         val connectedToHost = Steamed.isConnectedToLobbyHost()
         Steamed.leaveLobby()
         if (connectedToHost) {
-            this.minecraft.disconnectFromWorld(Component.literal("Left the Steam lobby"))
+            this.minecraft.disconnectFromWorld(Component.translatable("steamed.lobby.left"))
         } else {
             this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
         }
     }
 
-    fun disableButtons(message: String, vararg buttons: Button?) {
+    fun disableButtons(message: Component, vararg buttons: Button?) {
         for (button in buttons) {
-            button?.setTooltip(Tooltip.create(Component.literal(message)))
+            button?.setTooltip(Tooltip.create(message))
             button?.active = false
         }
     }
@@ -181,18 +182,18 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
 
         inner class Entry(private val lobby: SteamID, val steamId: SteamID, private val isHost: Boolean) :
             ContainerObjectSelectionList.Entry<Entry>() {
-            private val name: String = Steamed.friends?.getFriendPersonaName(steamId) ?: "unknown"
+            private val name: String = Steamed.friends?.getFriendPersonaName(steamId) ?: I18n.get("steamed.lobby.unknown_member")
             private val isSelf = steamId == Steamed.user?.steamID
             private var head: ResolvableProfile? = null
             private var kicked = Steamed.kickedPeers.contains(steamId)
             private val kickButton: Button? =
                 if (this@SteamLobbyScreen.isOwner && !isSelf) {
-                    Button.builder(Component.literal("Kick")) { button ->
+                    rowButton(Component.translatable("steamed.lobby.kick"), 40) { button ->
                         Steamed.kick(steamId)
                         kicked = true
                         button.active = false
                         LOGGER.info("Kicked {} from the lobby", name)
-                    }.width(40).build().also { it.active = !kicked }
+                    }.also { it.active = !kicked }
                 } else null
             private val widgets: List<AbstractWidget> = listOfNotNull(kickButton)
 
@@ -206,10 +207,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             }
 
             private fun status(): Component? = when {
-                kicked -> Component.literal("Kicked").withStyle(ChatFormatting.RED)
-                isHost && isSelf -> Component.literal("Host (you)")
-                isHost -> Component.literal("Host")
-                isSelf -> Component.literal("You")
+                kicked -> Component.translatable("steamed.lobby.status.kicked").withStyle(ChatFormatting.RED)
+                isHost && isSelf -> Component.translatable("steamed.lobby.status.host_you")
+                isHost -> Component.translatable("steamed.lobby.status.host")
+                isSelf -> Component.translatable("steamed.lobby.status.you")
                 else -> null
             }
 
@@ -318,14 +319,14 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
 
         inner class InviteRow(private val invite: Steamed.Invite) : Row() {
             override val buttons: List<AbstractWidget> = listOf(
-                Button.builder(Component.literal("Accept")) { _ ->
+                rowButton(Component.translatable("steamed.lobby.accept"), 50) { _ ->
                     Steamed.acceptInvite()
                     this@SteamLobbyScreen.onClose()
-                }.width(50).build(),
-                Button.builder(Component.literal("Decline")) { _ ->
+                },
+                rowButton(Component.translatable("steamed.lobby.decline"), 50) { _ ->
                     Steamed.declineInvite()
                     refresh()
-                }.width(50).build(),
+                },
             )
 
             override fun extractContent(
@@ -339,7 +340,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                     graphics,
                     SteamPlayers.friendUuid(invite.inviter),
                     Component.literal(invite.inviterName),
-                    Component.literal("Invited you to their lobby")
+                    Component.translatable("steamed.lobby.invited_you")
                 )
                 placeButtons(graphics, mouseX, mouseY, a)
             }
@@ -347,13 +348,13 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
 
         inner class HostRow(private val hosted: FriendLobbies.Hosted) : Row() {
             override val buttons: List<AbstractWidget> = listOf(
-                Button.builder(Component.literal("Join")) { _ ->
+                rowButton(Component.translatable("steamed.lobby.join"), 40) { _ ->
                     Steamed.joinLobby(hosted.lobby)
                     this@SteamLobbyScreen.onClose()
-                }.width(40).build().also {
+                }.also {
                     if (!hosted.compatible) {
                         it.active = false
-                        it.setTooltip(Tooltip.create(Component.literal("They're on Steamed ${hosted.version}, you're on ${Services.PLATFORM.modVersion()}. Everyone needs the same version")))
+                        it.setTooltip(Tooltip.create(Component.translatable("steamed.lobby.version_mismatch", hosted.version, Services.PLATFORM.modVersion())))
                     }
                 },
             )
@@ -366,9 +367,9 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
                 a: Float
             ) {
                 val names = hosted.friends.joinToString(", ") { it.second }
-                val world = hosted.world.ifEmpty { "a world" }
-                val subtitle = if (hosted.compatible) Component.literal("Playing $world")
-                else Component.literal("Steamed ${hosted.version}").withStyle(ChatFormatting.RED)
+                val world = hosted.world.ifEmpty { I18n.get("steamed.lobby.a_world") }
+                val subtitle = if (hosted.compatible) Component.translatable("steamed.lobby.playing", world)
+                else Component.translatable("steamed.lobby.version", hosted.version).withStyle(ChatFormatting.RED)
                 drawRow(
                     graphics,
                     SteamPlayers.friendUuid(hosted.friends.first().first),
@@ -391,7 +392,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
             ) {
                 graphics.centeredText(
                     font,
-                    Component.literal("None of your Steam friends are hosting right now"),
+                    Component.translatable("steamed.lobby.no_friends_hosting"),
                     this.contentX + this.contentWidth / 2,
                     this.contentY + (this.contentHeight - 9) / 2,
                     STATUS_COLOR
@@ -407,14 +408,20 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.literal("Lobb
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly
 
+        // Widens past the default for translations with longer labels.
+        private fun rowButton(message: Component, minWidth: Int, onPress: Button.OnPress): Button =
+            Button.builder(message, onPress)
+                .width(maxOf(minWidth, Minecraft.getInstance().font.width(message) + 10))
+                .build()
+
         private fun lobbyTypeName(type: SteamMatchmaking.LobbyType): Component = when (type) {
-            SteamMatchmaking.LobbyType.Private -> Component.literal("Invite only")
-            else -> Component.literal("Friends")
+            SteamMatchmaking.LobbyType.Private -> Component.translatable("steamed.visibility.private")
+            else -> Component.translatable("steamed.visibility.friends")
         }
 
         private fun lobbyTypeTooltip(type: SteamMatchmaking.LobbyType): Component = when (type) {
-            SteamMatchmaking.LobbyType.Private -> Component.literal("Only people you invite can join")
-            else -> Component.literal("Your Steam friends can join, as well as anyone you invite")
+            SteamMatchmaking.LobbyType.Private -> Component.translatable("steamed.visibility.private.tooltip")
+            else -> Component.translatable("steamed.visibility.friends.tooltip")
         }
     }
 }

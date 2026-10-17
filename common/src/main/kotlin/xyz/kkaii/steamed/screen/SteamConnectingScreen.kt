@@ -11,7 +11,7 @@ import xyz.kkaii.steamed.Steamed
 
 // Shown while the Steam auth handshake runs, before Minecraft's own ConnectScreen takes over.
 class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: String) :
-    Screen(Component.literal("Joining $hostName")) {
+    Screen(Component.translatable("steamed.connecting.title", hostName)) {
     private var failure: Component? = null
     private var button: Button? = null
 
@@ -23,15 +23,15 @@ class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: Strin
         )
     }
 
-    fun fail(reason: String) {
-        failure = Component.literal("Couldn't join $hostName: $reason")
+    fun fail(reason: Component) {
+        failure = Component.translatable("steamed.join.failed", hostName, reason)
         button?.message = CommonComponents.GUI_BACK
     }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
         graphics.centeredText(this.font, this.title, this.width / 2, this.height / 2 - 50, -1)
-        val status = failure ?: Component.literal("Connecting through Steam")
+        val status = failure ?: Component.translatable("steamed.connecting.status")
         graphics.centeredText(this.font, status, this.width / 2, this.height / 2 - 30, -6250336)
         if (failure == null) {
             graphics.centeredText(

@@ -17,7 +17,7 @@ import org.slf4j.Logger
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
 
-class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.literal("Invite a Friend")) {
+class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.translatable("steamed.invite_screen.title")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
     private var friendList: FriendSelectionList? = null
 
@@ -27,7 +27,7 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
         this.friendList = this.layout.addToContents(FriendSelectionList(this.minecraft))
 
         val footer: LinearLayout = this.layout.addToFooter(LinearLayout.horizontal().spacing(4))
-        footer.addChild(Button.builder(Component.literal("Invite"), { _ ->
+        footer.addChild(Button.builder(Component.translatable("steamed.invite_screen.invite"), { _ ->
             val entry = this.friendList?.selected
             if (entry == null || entry.invited) return@builder
 

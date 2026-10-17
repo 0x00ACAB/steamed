@@ -147,13 +147,7 @@ object SteamInit {
                 val instance = Minecraft.getInstance()
                 instance.execute {
                     instance.gui.hud.chat.addClientSystemMessage(
-                        Component.literal(
-                            "Couldn't join the lobby: ${
-                                enterFailureReason(
-                                    response
-                                )
-                            }"
-                        )
+                        Component.translatable("steamed.lobby.enter_failed", enterFailureReason(response))
                     )
                 }
                 return
@@ -285,13 +279,13 @@ object SteamInit {
         }
     }
 
-    private fun enterFailureReason(response: SteamMatchmaking.ChatRoomEnterResponse?): String = when (response) {
-        SteamMatchmaking.ChatRoomEnterResponse.DoesntExist -> "it no longer exists"
-        SteamMatchmaking.ChatRoomEnterResponse.Full -> "it's full"
-        SteamMatchmaking.ChatRoomEnterResponse.NotAllowed -> "you're not allowed in (it may be invite-only)"
-        SteamMatchmaking.ChatRoomEnterResponse.Banned -> "you're banned from it"
-        SteamMatchmaking.ChatRoomEnterResponse.RatelimitExceeded -> "too many attempts, try again shortly"
-        else -> "Steam said ${response?.name ?: "nothing"}"
+    private fun enterFailureReason(response: SteamMatchmaking.ChatRoomEnterResponse?): Component = when (response) {
+        SteamMatchmaking.ChatRoomEnterResponse.DoesntExist -> Component.translatable("steamed.lobby.enter_failed.doesnt_exist")
+        SteamMatchmaking.ChatRoomEnterResponse.Full -> Component.translatable("steamed.lobby.enter_failed.full")
+        SteamMatchmaking.ChatRoomEnterResponse.NotAllowed -> Component.translatable("steamed.lobby.enter_failed.not_allowed")
+        SteamMatchmaking.ChatRoomEnterResponse.Banned -> Component.translatable("steamed.lobby.enter_failed.banned")
+        SteamMatchmaking.ChatRoomEnterResponse.RatelimitExceeded -> Component.translatable("steamed.lobby.enter_failed.rate_limited")
+        else -> Component.translatable("steamed.lobby.enter_failed.other", response?.name ?: "nothing")
     }
 
     private fun kv(id: SteamID?, k: String?, v: String?) {
