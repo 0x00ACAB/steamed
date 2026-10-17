@@ -79,5 +79,14 @@
   "steamed.auth.not_hosting": "Der Host hostet keine Welt",
   "steamed.join.wrong_minecraft": "Der Host spielt Minecraft %s und du %s, deshalb kannst du seiner Welt nicht beitreten",
   "steamed.lobby.minecraft_mismatch": "Dort läuft Minecraft %s, bei dir %s. Alle brauchen dieselbe Version",
-  "steamed.lobby.minecraft": "Minecraft %s"
+  "steamed.lobby.minecraft": "Minecraft %s",
+  "steamed.steam.unavailable": "Steamed erreicht Steam nicht. Starte Steam und melde dich an, dann drücke unten auf Erneut versuchen",
+  "steamed.steam.retry": "Erneut versuchen",
+  "steamed.steam.unavailable.toast": "Steam läuft nicht",
+  "steamed.steam.start_hint": "Starte Steam, um Steam-Lobbys zu nutzen",
+  "steamed.steam.lost.toast": "Steam wurde beendet",
+  "steamed.steam.lost": "Steam wurde beendet, daher wurde die Verbindung zum Host getrennt",
+  "steamed.steam.retry.connected": "Mit Steam verbunden",
+  "steamed.steam.retry.failed": "Steam nicht erreichbar",
+  "steamed.steam.retry.failed.hint": "Stelle sicher, dass Steam läuft und du angemeldet bist"
 }

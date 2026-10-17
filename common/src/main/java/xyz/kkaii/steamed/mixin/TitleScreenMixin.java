@@ -38,7 +38,8 @@ public class TitleScreenMixin extends Screen {
 		TitleScreen thisObject = (TitleScreen) (Object) this;
 		int width = this.font.width(message);
 		int x = this.width - width - 2;
-		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 32, width, 15, message, _ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen())), this.font));
+		// One line above vanilla's copyright, which sits at height - 10.
+		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 20, width, 10, message, _ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen())), this.font));
 
 		steamed$addLobbyButton();
 	}

@@ -9,6 +9,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.*
+import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
@@ -18,10 +19,12 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.resources.language.I18n
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import net.minecraft.util.ARGB
 import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
 import xyz.kkaii.steamed.FriendLobbies
+import xyz.kkaii.steamed.SteamInit
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
 import xyz.kkaii.steamed.platform.Services
@@ -38,6 +41,9 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
     private var isInsideLobby = false
     private var isOwner = false
 
+    // Opening the screen retries Steam, so starting it after Minecraft just works.
+    private val steamAvailable = SteamInit.connect()
+
     init {
         this.isInsideLobby = Steamed.lobbyId.isSome()
         if (this.isInsideLobby) this.isOwner =
@@ -46,6 +52,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
 
     override fun init() {
         this.layout.addTitleHeader(this.title, this.font)
+        if (!steamAvailable) {
+            initWithoutSteam()
+            return
+        }
 
         if (this.isInsideLobby) {
             this.memberList = this.layout.addToContents(MemberList(this.minecraft))
@@ -112,6 +122,35 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
         )
         this.layout.visitWidgets(this::addRenderableWidget)
         this.repositionElements()
+    }
+
+    private fun initWithoutSteam() {
+        this.layout.addToContents(
+            MultiLineTextWidget(Component.translatable("steamed.steam.unavailable"), this.font)
+                .setMaxWidth(260)
+                .setCentered(true)
+        )
+        val footer: LinearLayout = this.layout.addToFooter(LinearLayout.horizontal().spacing(4))
+        val retryLabel = Component.translatable("steamed.steam.retry")
+        footer.addChild(
+            ImageButton(0, 0, 20, 20, RETRY_SPRITES, { _ -> retrySteam() }, retryLabel)
+                .also { it.setTooltip(Tooltip.create(retryLabel)) }
+        )
+        footer.addChild(Button.builder(CommonComponents.GUI_BACK, { _ -> this.onClose() }).width(150).build())
+        this.layout.visitWidgets(this::addRenderableWidget)
+        this.repositionElements()
+    }
+
+    private fun retrySteam() {
+        val connected = SteamInit.connect()
+        val friends = Steamed.friends
+        SystemToast.addOrUpdate(
+            this.minecraft.gui.toastManager(), RETRY_TOAST,
+            Component.translatable(if (connected) "steamed.steam.retry.connected" else "steamed.steam.retry.failed"),
+            if (connected && friends != null) Component.translatable("steamed.title.logged_in", friends.personaName)
+            else Component.translatable("steamed.steam.retry.failed.hint")
+        )
+        if (connected) this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
     }
 
     private fun leaveLobby() {
@@ -420,6 +459,11 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
     companion object {
         private val LOGGER: Logger = LogUtils.getLogger()
         private val BG_FILL = ARGB.color(255, 74, 74, 74)
+        private val RETRY_TOAST = SystemToast.SystemToastId(4000L)
+        private val RETRY_SPRITES = WidgetSprites(
+            Identifier.fromNamespaceAndPath("steamed", "menu/retry"),
+            Identifier.fromNamespaceAndPath("steamed", "menu/retry_highlighted")
+        )
         private val STATUS_COLOR = ARGB.color(140, 255, 255, 255)
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly

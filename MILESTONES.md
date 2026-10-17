@@ -568,6 +568,20 @@ not, members fall back to the old timeout), and friends-list "Join Game".
 - [x] The same marker in the Tab player list (`PlayerTabOverlayMixin` on `getNameForDisplay`, so the list width accounts
   for it). Verified in a Fabric dev client with a seeded UUID
 
+### Without Steam (2026-10-17)
+
+- [x] A toast on the first title screen when Steam wasn't reachable at launch
+- [x] The lobby screen retries `SteamAPI.initEx()` whenever it opens, and shows a "start Steam" message with a red
+  retry button (Pixelarticons "reload", same S/V as the orange mug, hue moved to red) while Steam is still missing
+- [x] `SteamCallbackTask` checks `isSteamRunning(true)` about once a second. If Steam quits, the lobby is left, the
+  interfaces are disposed and `SteamAPI.shutdown()` runs so a later retry starts clean, and a joiner gets a
+  disconnect screen saying why
+- [x] The retry button toasts the result ("Connected to Steam" with the persona name, or "Couldn't reach Steam")
+- [x] Live-tested by hand (2026-10-17): launching with Steam closed, then starting it and pressing retry, works, so
+  `initEx()` does succeed on a second attempt in the same process
+- [x] Fixed the title screen's "Logged in as" line sitting one line too high (it was at `height - 32` since the first
+  commit; the copyright is at `height - 10`)
+
 ### M10 followups
 
 - [x] Lobbies carry the host's Minecraft version and protocol (`mc_version`/`mc_protocol`, 2026-10-17). The lobby list

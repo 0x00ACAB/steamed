@@ -33,7 +33,8 @@ libraries (steam_api / libsteam_api), which are distributed under the terms of
 the Steamworks SDK Access Agreement: https://partner.steamgames.com/documentation/sdk_access_agreement
 
 ================================================================================
-Pixelarticons (the "tea" icon, recoloured, used as the mod icon)
+Pixelarticons (the "tea" icon, recoloured, used as the mod icon; the "reload"
+icon, recoloured, used as the retry button)
 https://github.com/halfmage/pixelarticons
 ================================================================================
 

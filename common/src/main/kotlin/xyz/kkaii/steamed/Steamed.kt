@@ -110,6 +110,7 @@ object Steamed {
 
     fun onTitleScreen() {
         if (lobbyWorldStarted) leaveLobby()
+        SteamInit.warnIfUnavailable()
     }
 
     // The type the lobby screen last asked Steam to create, so onLobbyCreated can record it as lobby data.

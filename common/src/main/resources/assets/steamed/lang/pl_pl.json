@@ -79,5 +79,14 @@
   "steamed.auth.not_hosting": "Gospodarz nie udostępnia świata",
   "steamed.join.wrong_minecraft": "Gospodarz ma Minecraft %s, a ty %s, więc nie możesz dołączyć do jego świata",
   "steamed.lobby.minecraft_mismatch": "Ten gracz ma Minecraft %s, a ty %s. Wszyscy muszą mieć tę samą wersję",
-  "steamed.lobby.minecraft": "Minecraft %s"
+  "steamed.lobby.minecraft": "Minecraft %s",
+  "steamed.steam.unavailable": "Steamed nie może połączyć się ze Steam. Uruchom Steam i zaloguj się, a potem naciśnij przycisk ponowienia poniżej",
+  "steamed.steam.retry": "Ponów",
+  "steamed.steam.unavailable.toast": "Steam nie jest uruchomiony",
+  "steamed.steam.start_hint": "Uruchom Steam, aby korzystać z lobby Steam",
+  "steamed.steam.lost.toast": "Steam został zamknięty",
+  "steamed.steam.lost": "Steam został zamknięty, więc połączenie z gospodarzem zostało przerwane",
+  "steamed.steam.retry.connected": "Połączono ze Steam",
+  "steamed.steam.retry.failed": "Nie można połączyć się ze Steam",
+  "steamed.steam.retry.failed.hint": "Upewnij się, że Steam jest uruchomiony i jesteś zalogowany"
 }

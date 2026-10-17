@@ -114,6 +114,7 @@ tested.
 
 Steamed is released under [CC0-1.0](LICENSE). The jars bundle third-party libraries under their own licenses; see [
 `THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES). The icon is the "tea" glyph
-from [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT), recoloured.
+from [Pixelarticons](https://github.com/halfmage/pixelarticons) (MIT), recoloured, and so is the retry button's
+"reload" glyph.
 
 Steamed is not affiliated with or endorsed by Valve. Steam and Steamworks are trademarks of Valve Corporation.

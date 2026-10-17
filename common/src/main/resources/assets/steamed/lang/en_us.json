@@ -79,5 +79,14 @@
   "steamed.auth.not_hosting": "The host isn't hosting a world",
   "steamed.join.wrong_minecraft": "The host is on Minecraft %s and you're on %s, so you can't join their world",
   "steamed.lobby.minecraft_mismatch": "They're on Minecraft %s, you're on %s. Everyone needs the same version",
-  "steamed.lobby.minecraft": "Minecraft %s"
+  "steamed.lobby.minecraft": "Minecraft %s",
+  "steamed.steam.unavailable": "Steamed can't reach Steam. Start Steam and log in, then press the retry button below",
+  "steamed.steam.retry": "Retry",
+  "steamed.steam.unavailable.toast": "Steam isn't running",
+  "steamed.steam.start_hint": "Start Steam to use Steam lobbies",
+  "steamed.steam.lost.toast": "Steam closed",
+  "steamed.steam.lost": "Steam closed, so the connection to the host ended",
+  "steamed.steam.retry.connected": "Connected to Steam",
+  "steamed.steam.retry.failed": "Couldn't reach Steam",
+  "steamed.steam.retry.failed.hint": "Make sure Steam is running and you're logged in"
 }

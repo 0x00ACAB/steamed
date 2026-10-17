@@ -79,5 +79,14 @@
   "steamed.auth.not_hosting": "Хост не хостит мир",
   "steamed.join.wrong_minecraft": "У хоста Minecraft %s, а у вас %s, поэтому вы не можете подключиться к его миру",
   "steamed.lobby.minecraft_mismatch": "У этого игрока Minecraft %s, а у вас %s. Всем нужна одна и та же версия",
-  "steamed.lobby.minecraft": "Minecraft %s"
+  "steamed.lobby.minecraft": "Minecraft %s",
+  "steamed.steam.unavailable": "Steamed не может связаться со Steam. Запустите Steam и войдите, затем нажмите кнопку повтора ниже",
+  "steamed.steam.retry": "Повторить",
+  "steamed.steam.unavailable.toast": "Steam не запущен",
+  "steamed.steam.start_hint": "Запустите Steam, чтобы пользоваться лобби Steam",
+  "steamed.steam.lost.toast": "Steam закрыт",
+  "steamed.steam.lost": "Steam закрыт, поэтому соединение с хостом разорвано",
+  "steamed.steam.retry.connected": "Подключено к Steam",
+  "steamed.steam.retry.failed": "Не удалось связаться со Steam",
+  "steamed.steam.retry.failed.hint": "Убедитесь, что Steam запущен и вы вошли"
 }

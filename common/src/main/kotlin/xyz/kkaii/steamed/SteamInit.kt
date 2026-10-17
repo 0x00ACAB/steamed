@@ -6,6 +6,9 @@ import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
+import net.minecraft.client.gui.components.toasts.SystemToast
+import net.minecraft.client.gui.screens.DisconnectedScreen
+import net.minecraft.client.gui.screens.TitleScreen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -18,6 +21,7 @@ import xyz.kkaii.steamed.Steamed.user
 import xyz.kkaii.steamed.Steamed.userStats
 import xyz.kkaii.steamed.net.*
 import xyz.kkaii.steamed.platform.Services
+import xyz.kkaii.steamed.screen.SteamLobbyScreen
 import xyz.kkaii.steamed.tasks.SteamCallbackTask
 import xyz.kkaii.steamed.tasks.SteamFriendsCallbackEx
 import java.io.File
@@ -29,11 +33,13 @@ import java.util.*
 object SteamInit {
     private val LOGGER: Logger = LoggerFactory.getLogger("SteamP2P#PreLaunch")
 
+    private var librariesLoaded = false
+    private var warnedUnavailable = false
+    private val STEAM_TOAST = SystemToast.SystemToastId(10000L)
+
     fun initSteam() {
         createAppid()
-
-        val loader: SteamLibraryLoader = SteamLibraryLoaderLwjgl3()
-        if (!SteamAPI.loadLibraries(loader)) LOGGER.error("Failed to load steam libraries")
+        if (!loadLibraries()) return
 
         try {
             if (SteamAPI.restartAppIfNecessary(480)) {
@@ -44,16 +50,30 @@ object SteamInit {
             throw RuntimeException(e)
         }
 
-        val result: InitResult
-        try {
-            result = SteamAPI.initEx()
+        connect()
+    }
+
+    private fun loadLibraries(): Boolean {
+        if (!librariesLoaded) librariesLoaded = SteamAPI.loadLibraries(SteamLibraryLoaderLwjgl3())
+        if (!librariesLoaded) LOGGER.error("Failed to load steam libraries")
+        return librariesLoaded
+    }
+
+    // Also run again from the lobby screen, so starting Steam after Minecraft doesn't need a restart.
+    @Synchronized
+    fun connect(): Boolean {
+        if (friends != null) return true
+        if (!loadLibraries()) return false
+
+        val result = try {
+            SteamAPI.initEx()
         } catch (e: SteamException) {
-            throw RuntimeException(e)
+            LOGGER.error("SteamAPI.initEx() threw", e)
+            return false
         }
         if (result != InitResult.OK) {
             LOGGER.error("SteamAPI.initEx() failed: {}", result.name)
-            SteamAPI.printDebugInfo(System.err)
-            return
+            return false
         }
 
         SteamAPI.printDebugInfo(System.out)
@@ -82,6 +102,65 @@ object SteamInit {
         LOGGER.info("Starting steam poller task")
         Steamed.timer = Timer("steam-callback-poller", true)
         Steamed.timer?.schedule(SteamCallbackTask(), 0, 15)
+        return true
+    }
+
+    // Steam quit while we were connected (noticed by SteamCallbackTask). Drop everything so connect() can start over.
+    fun onSteamLost() {
+        LOGGER.warn("Steam stopped running")
+        val mc = Minecraft.getInstance()
+        mc.execute {
+            val connectedToHost = Steamed.isConnectedToLobbyHost()
+            Steamed.leaveLobby()
+            disconnect()
+            if (connectedToHost) {
+                mc.disconnect(
+                    DisconnectedScreen(
+                        TitleScreen(),
+                        Component.translatable("steamed.disconnected"),
+                        Component.translatable("steamed.steam.lost")
+                    ), false
+                )
+            } else {
+                (mc.gui.screen() as? SteamLobbyScreen)?.let { mc.setScreenAndShow(SteamLobbyScreen(it.lastScreen)) }
+            }
+            SystemToast.addOrUpdate(
+                mc.gui.toastManager(), STEAM_TOAST,
+                Component.translatable("steamed.steam.lost.toast"), Component.translatable("steamed.steam.start_hint")
+            )
+        }
+    }
+
+    @Synchronized
+    private fun disconnect() {
+        Steamed.timer?.cancel()
+        Steamed.timer = null
+        user?.dispose()
+        userStats?.dispose()
+        friends?.dispose()
+        matchmaking?.dispose()
+        networking?.dispose()
+        user = null
+        userStats = null
+        friends = null
+        matchmaking = null
+        networking = null
+        Steamed.p2pRelay = null
+        Steamed.p2pVoiceRelay = null
+        Steamed.p2pWebRelay = null
+        Steamed.authHandshake = null
+        SteamAPI.shutdown()
+    }
+
+    // Once, on the first title screen: Steam wasn't there at launch.
+    fun warnIfUnavailable() {
+        if (warnedUnavailable || friends != null) return
+        warnedUnavailable = true
+        val mc = Minecraft.getInstance()
+        SystemToast.addOrUpdate(
+            mc.gui.toastManager(), STEAM_TOAST,
+            Component.translatable("steamed.steam.unavailable.toast"), Component.translatable("steamed.steam.start_hint")
+        )
     }
 
     private fun createAppid(): Boolean {
