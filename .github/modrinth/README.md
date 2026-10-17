@@ -30,7 +30,7 @@ Needs Python 3 with Pillow.
 The screenshots show demo players (Robin, Kai, Sam, Ari) with default skins, set up by a temporary patch.
 
 1. `python3 tools/demo_patch.py` (patches the mod with demo data and `tools/shoot-hook.kt`)
-2. `./gradlew :fabric:runClient --args='--quickPlaySingleplayer "New World" --fullscreen'` with Steam running. The hook
+2. `./gradlew :26.2-fabric:runClient --args='--quickPlaySingleplayer "New World" --fullscreen'` with Steam running. The hook
    builds a small camp and takes six screenshots, then logs `STEAMED-SHOT done`
 3. Close the game, then `python3 tools/demo_patch.py --revert`. **Always revert before committing**
 4. Copy the six new files from `fabric/run/screenshots/` into `raw/` as `raw-nametags.png`, `raw-maplink.png`,

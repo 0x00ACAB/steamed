@@ -1,18 +1,20 @@
 # Steamed
 
-Client-side Fabric + NeoForge mod that lets players host and join Minecraft worlds through Steam lobbies (Steamworks via
+Client-side Fabric + NeoForge (+ Quilt on 26.2) mod that lets players host and join Minecraft worlds through Steam lobbies (Steamworks via
 steamworks4j). Progress and plans are in `milestones.md`.
 
 ## Stack
 
-- Minecraft 26.2, Java 25
-- Kotlin 2.4.20 for logic, Java 25 only for mixins
+- Minecraft 26.2 (Java 25; Fabric, NeoForge, Quilt) and 1.21.1 (Java 21; Fabric, NeoForge). Nodes: `26.2-fabric`,
+  `26.2-neoforge`, `26.2-quilt`, `1.21.1-fabric`, `1.21.1-neoforge`
+- Kotlin 2.4.20 for logic, Java only for mixins (and no Java 22+ syntax such as `_` lambda parameters: 1.21.1 builds
+  with Java 21)
 - Multi-loader and multi-version: Stonecutter 0.9.8 nodes named `<mc>-<loader>` over one `src/` tree, set up after
   Multicutter's layout (`pajicadvance/multicutter` at `bf13a3b`); Fabric and Quilt go through `dev.kikugie.loom-back-compat`
   (Fabric Loom 1.18.2). Nodes are declared in `settings.gradle.kts`; each loader has its own `build.<loader>.gradle.kts`
 - Fabric: Fabric Loader 0.19.5, Fabric API (required: nothing imports it, but its resource loader is what loads
   `assets/steamed`; neither Fabric nor Quilt Loader do that alone), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
-- NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle), Kotlin for Forge (required at runtime: nothing
+- NeoForge: NeoForge 26.2.0.88 / 21.1.262, `net.neoforged.moddev` (ModDevGradle), Kotlin for Forge (required at runtime: nothing
   else provides the Kotlin stdlib, and `runClient` hides that since Gradle puts it on the classpath)
 - Quilt: `org.quiltmc:quilt-loader` plus plain Fabric API (Quilted Fabric API stops at 1.20.1), reusing plain
   Fabric Loom (not a separate Quilt Loom — see Gotchas)
@@ -29,7 +31,8 @@ steamworks4j). Progress and plans are in `milestones.md`.
 ## Release
 
 - Releases should go both on modrinth and github releases
-- Each release should include the three platform-specific jars (Fabric, NeoForge, Quilt; classic Forge exempt for now)
+- Each release should include every node's jar (26.2 Fabric, NeoForge, Quilt; 1.21.1 Fabric, NeoForge; classic Forge
+  exempt for now)
 - Release notes should detail the changes and improvements in each version
 
 ## Commands
@@ -81,7 +84,7 @@ Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,
   overlay), `screen/SteamConnectingScreen.kt` (shown while the auth handshake runs), `mixin/TitleScreenMixin.java`/
   `AvatarRendererMixin.java` and `PlayerTabOverlayMixin.java` (orange diamond before Steam joiners' name tags and Tab
   list names, glyph from `assets/steamed/font/nametag.json`)/`PauseMenuMixin.java`/`IntegratedServerMixin.java`
-  (loopback-only bind when hosting through Steam, and lifts vanilla's 8-player cap to the lobby limit)/
+  (loopback-only bind when hosting through Steam, and on 26.x lifts vanilla's 8-player cap to the lobby limit)/
   `ChatListenerMixin.java` (orange join/leave lines for Steam joiners)/`ConnectScreenAccessor.java`, `steamed.mixins.json`,
   `platform/IPlatformHelper.kt`+`Services.kt` (the one thing that needs a per-loader implementation — currently just the
   game directory)
@@ -139,6 +142,19 @@ Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,
   `steamed` (the host's mod version), `visibility` (`friends`/`private`), and `mc_version`/`mc_protocol` (the
   host's Minecraft; joining is gated on the protocol number), written in `onLobbyCreated`; anything that
   lists lobbies must check `steamed` first. `IPlatformHelper.modVersion()` is the per-loader source of the version
+- Version differences live in two places only: `compat/Compat26.kt` and `compat/Compat1_21_1.kt` (same top-level
+  names, Java facade `Compat`, each wrapped in a whole-file `//? if` condition), and inline `//? if >=26.1 {` blocks in
+  mixins. Mixins that exist for one version only are whole-file conditions too (`AvatarRendererMixin` for 26.x;
+  `PlayerRendererMixin`, `PlayerListMixin`, `MinecraftAccessor` for 1.21.1), listed per version in the TOML's
+  `mod.mixins`. The source is written in 26.x names; Stonecutter's `replacements` rewrite `Identifier` to
+  `ResourceLocation` and `net.minecraft.util.Util` to `net.minecraft.Util` for 1.21.1. When editing a 1.21.1 branch,
+  switch the active node first so it's uncommented, and remember the rewritten names
+- 1.21.1 is obfuscated: Fabric remaps through loom-back-compat (Loom remaps mixin annotations statically, no refmap),
+  and there are no local variable names, so `@Local(name = …)` only works on 26.x. Its 8-player cap is the
+  `PlayerList.maxPlayers` field (read in `canPlayerLogin`), hence `PlayerListMixin`; 26.x's is
+  `IntegratedServer.getMaxPlayers()`. NeoForge 21.1 needs `modLoader`/`loaderVersion` in `neoforge.mods.toml`, enforces
+  the KFF dependency even in `runClient` (hence the `devRuntime` configuration), and loads plain dev-classpath
+  libraries in another layer (hence the unpacked steamworks4j for 1.21.1 dev runs)
 - Minecraft 26.x renames things often and moves ownership between classes (for example `GuiGraphicsExtractor`/
   `extractRenderState`; `Minecraft.screen` is gone — current screen is `Minecraft.gui.screen()`, set with
   `Minecraft.setScreenAndShow(Screen)` or, for a nullable close, `Minecraft.gui.setScreen(Screen?)`; chat is

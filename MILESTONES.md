@@ -605,6 +605,15 @@ not, members fall back to the old timeout), and friends-list "Join Game".
   `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed
   errors
 - [ ] Backports to more popular versions {26.x, 1.21.x, 1.20.x, 1.16.5}
+    - [x] Build restructure (2026-10-17): Stonecutter nodes over one `src/` tree (spec and plan in
+      `docs/superpowers/`). The 26.2 jars match 0.1.4's file lists and metadata (plus the new `compat` classes and
+      NeoForge's `modLoader` line); all three 26.2 Prism instances initialise Steam and reach the title screen
+    - [ ] 1.21.1 (Fabric, NeoForge), shipping in 0.2.0. Verified 2026-10-17: both dev clients initialise Steam and join a
+      world with no mixin errors; the Fabric 1.21.1 Prism instance (Fabric API 0.116.17, FLK 1.14.1) initialises Steam
+      and reaches the title screen. Still to check by hand on real installs: NeoForge 1.21.1 in Prism, the title-screen
+      icon, lobby screen with your face, `/list` showing the lobby's max players, the invite screen, and "Open to LAN"
+      after leaving a lobby. Blocked on a second Steam account: joining, auth, kick, voice, web maps, the nametag
+      marker seen from another client, and the version-gate greying in a friend's list
     - [ ] 1.16.5: normal forge, since NeoForge doesn't support it
 - [x] `:quilt:runClient` works (2026-10-17): the signer clash came from FLK's transitive `fabric-loader`, not
   quilt-loader's. Loaded Steamed with Steam running, title-screen lobby icon renders

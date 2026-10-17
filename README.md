@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="common/src/main/resources/assets/steamed/icon.png" alt="Steamed icon: an orange pixel-art mug with steam rising from it" width="128" height="128">
+<img src="src/main/resources/assets/steamed/icon.png" alt="Steamed icon: an orange pixel-art mug with steam rising from it" width="128" height="128">
 
 # Steamed
 
@@ -9,7 +9,7 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 
 <sub><i>Steam from the steamed craft we're having.</i></sub>
 
-![Minecraft 26.2](https://img.shields.io/badge/Minecraft-26.2-62B47A?style=flat-square)
+![Minecraft 26.2 | 1.21.1](https://img.shields.io/badge/Minecraft-26.2%20%7C%201.21.1-62B47A?style=flat-square)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4?style=flat-square)
 ![NeoForge](https://img.shields.io/badge/loader-NeoForge-D7742F?style=flat-square)
 [![Build](https://img.shields.io/github/actions/workflow/status/0x00ACAB/steamed/build.yml?branch=main&style=flat-square&label=build)](https://github.com/0x00ACAB/steamed/actions/workflows/build.yml)
@@ -73,11 +73,11 @@ connection to your world. To Minecraft on both sides it looks like an ordinary l
 
 |                          |                                                                                                      |
 |--------------------------|------------------------------------------------------------------------------------------------------|
-| **Minecraft**            | 26.2, Java 25                                                                                        |
+| **Minecraft**            | 26.2 (Java 25) or 1.21.1 (Java 21). Get the jar for your version: `+26.2` or `+1.21.1` in its name |
 | **Steam**                | The Steam client must be running and signed in, for everyone                                         |
 | **Fabric**               | Fabric Loader 0.19.5+, [Fabric API](https://modrinth.com/mod/fabric-api) and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) |
-| **NeoForge**             | NeoForge 26.2, nothing else (Kotlin is bundled)                                                      |
-| **Quilt** (experimental) | Fabric API (the regular one; Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
+| **NeoForge**             | NeoForge 26.2 with [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) 6.4+, or NeoForge 21.1 (1.21.1) with Kotlin for Forge 5.12+ |
+| **Quilt** (experimental, 26.2 only) | Fabric API (the regular one; Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
 
 Everyone in a lobby needs the same version of Steamed and of Minecraft.
 
@@ -105,13 +105,13 @@ started from Steam. Steamed doesn't need it.
 ## Building
 
 ```sh
-./gradlew build               # every loader
-./gradlew :fabric:build       # or one at a time: :neoforge:build, :quilt:build
-./gradlew :fabric:runClient   # dev client (Steam must be running), also :neoforge:runClient
+./gradlew build                    # every Minecraft version and loader
+./gradlew :26.2-fabric:build       # or one node: 26.2-neoforge, 26.2-quilt, 1.21.1-fabric, 1.21.1-neoforge
+./gradlew :26.2-fabric:runClient   # dev client (Steam must be running), works for every node
 ```
 
-Jars end up in `<loader>/build/libs/steamed-<loader>-<version>.jar`. The code lives almost entirely in `common/`, which
-each loader module compiles in; see [`MILESTONES.md`](MILESTONES.md) for the roadmap and what has and hasn't been
+Jars end up in `versions/<node>/build/libs/steamed-<loader>-<version>+<mc>.jar`. One source tree in `src/` builds
+every node through [Stonecutter](https://stonecutter.kikugie.dev/); see [`MILESTONES.md`](MILESTONES.md) for the roadmap and what has and hasn't been
 tested.
 
 ## License

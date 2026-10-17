@@ -1,7 +1,7 @@
 """Temporarily patches the mod with demo players and a screenshot hook (tools/shoot-hook.kt).
 
     python3 tools/demo_patch.py           # apply
-    ./gradlew :fabric:runClient --args='--quickPlaySingleplayer "New World" --fullscreen'
+    ./gradlew :26.2-fabric:runClient --args='--quickPlaySingleplayer "New World" --fullscreen'
     python3 tools/demo_patch.py --revert  # restore from git (always do this before committing)
 
 The hook builds a small camp in the world, takes the screenshots into fabric/run/screenshots,
@@ -15,12 +15,12 @@ import sys
 R = pathlib.Path(__file__).resolve().parents[3]
 TOOLS = pathlib.Path(__file__).resolve().parent
 PATCHED = [
-    'common/src/main/kotlin/xyz/kkaii/steamed/Steamed.kt',
-    'common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamLobbyScreen.kt',
-    'common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamFriendListScreen.kt',
+    'src/main/kotlin/xyz/kkaii/steamed/Steamed.kt',
+    'src/main/kotlin/xyz/kkaii/steamed/screen/SteamLobbyScreen.kt',
+    'src/main/kotlin/xyz/kkaii/steamed/screen/SteamFriendListScreen.kt',
     'fabric/src/main/kotlin/xyz/kkaii/steamed/fabric/SteamedFabric.kt',
 ]
-DEMO = R / 'common/src/main/kotlin/xyz/kkaii/steamed/DemoData.kt'
+DEMO = R / 'src/main/kotlin/xyz/kkaii/steamed/DemoData.kt'
 
 if '--revert' in sys.argv:
     subprocess.run(['git', 'checkout', '--', *PATCHED], cwd=R, check=True)
@@ -64,7 +64,7 @@ def sub(path, pairs):
     for a, b in pairs:
         assert a in s, (path, a[:60]); s = s.replace(a, b)
     p.write_text(s)
-sub('common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamLobbyScreen.kt', [
+sub('src/main/kotlin/xyz/kkaii/steamed/screen/SteamLobbyScreen.kt', [
  ('''            val current = (0..<matchmaking.getNumLobbyMembers(lobby)).map { matchmaking.getLobbyMemberByIndex(lobby, it) }''',
   '''            val current = if (xyz.kkaii.steamed.DemoData.enabled) xyz.kkaii.steamed.DemoData.people.map { it.id } else (0..<matchmaking.getNumLobbyMembers(lobby)).map { matchmaking.getLobbyMemberByIndex(lobby, it) }'''),
  ('''                val owner = matchmaking.getLobbyOwner(lobby)
@@ -75,7 +75,7 @@ sub('common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamLobbyScreen.kt', [
  ('''                if (head == null) head = SteamPlayers.memberUuid(lobby, steamId)?.let { ResolvableProfile.createUnresolved(it) }''',
   '''                if (head == null) head = (xyz.kkaii.steamed.DemoData.uuidOf(steamId) ?: SteamPlayers.memberUuid(lobby, steamId))?.let { ResolvableProfile.createUnresolved(it) }'''),
 ])
-sub('common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamFriendListScreen.kt', [
+sub('src/main/kotlin/xyz/kkaii/steamed/screen/SteamFriendListScreen.kt', [
  ('''            } else {
                 val count = friends.getFriendCount(SteamFriends.FriendFlags.Immediate)''', '''            } else if (xyz.kkaii.steamed.DemoData.enabled) {
                 xyz.kkaii.steamed.DemoData.friends.forEach { (p, st) -> this.addEntry(Entry(p.id, p.name, st)) }
@@ -84,7 +84,7 @@ sub('common/src/main/kotlin/xyz/kkaii/steamed/screen/SteamFriendListScreen.kt', 
  ('''                if (head == null) head = SteamPlayers.friendUuid(steamId)?.let { SteamPlayers.head(it) }''',
   '''                if (head == null) head = (xyz.kkaii.steamed.DemoData.uuidOf(steamId) ?: SteamPlayers.friendUuid(steamId))?.let { SteamPlayers.head(it) }'''),
 ])
-sub('common/src/main/kotlin/xyz/kkaii/steamed/Steamed.kt', [
+sub('src/main/kotlin/xyz/kkaii/steamed/Steamed.kt', [
  ('''        val name = friends?.getFriendPersonaName(inviter) ?: "Someone"''', '''        val name = DemoData.nameOf(inviter) ?: friends?.getFriendPersonaName(inviter) ?: "Someone"'''),
  ('''        val hostName = friends?.getFriendPersonaName(host) ?: "The host"''', '''        val hostName = DemoData.nameOf(host) ?: friends?.getFriendPersonaName(host) ?: "The host"'''),
 ])

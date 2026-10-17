@@ -1,6 +1,6 @@
 """Renders the mod icon from Pixelarticons' "tea" glyph (MIT, see third_party/pixelarticons/LICENSE) in Steamed's orange.
 
-Writes common/src/main/resources/assets/steamed/icon.png (512x512), images/icon-24.png, and the title screen
+Writes src/main/resources/assets/steamed/icon.png (512x512), images/icon-24.png, and the title screen
 button's sprites (20x20, normal and highlighted). Needs rsvg-convert.
 """
 import io
@@ -27,12 +27,12 @@ glyph = centred
 
 icon = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
 icon.alpha_composite(glyph.resize((480, 480), Image.NEAREST), (16, 16))
-icon.save(REPO / 'common/src/main/resources/assets/steamed/icon.png')
+icon.save(REPO / 'src/main/resources/assets/steamed/icon.png')
 (PAGE / 'images').mkdir(exist_ok=True)
 glyph.save(PAGE / 'images/icon-24.png')
 
 # Title screen button: the 18x20 glyph at 1:1 on a 20x20 canvas, plus a lighter copy for hover/focus.
-sprites = REPO / 'common/src/main/resources/assets/steamed/textures/gui/sprites/menu'
+sprites = REPO / 'src/main/resources/assets/steamed/textures/gui/sprites/menu'
 sprites.mkdir(parents=True, exist_ok=True)
 trimmed = glyph.crop(glyph.getbbox())
 button = Image.new('RGBA', (20, 20), (0, 0, 0, 0))
