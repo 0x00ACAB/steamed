@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "steamed",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contact": {
+    "sources": "${mod_sources_url}",
+    "email": "${mod_contact_email}",
+    "issues": "${mod_issues_url}"
+  },
+  "license": "${mod_license}",
+  "icon": "assets/steamed/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      {
+        "value": "${entry_main}",
+        "adapter": "kotlin"
+      }
+    ],
+    "preLaunch": [
+      {
+        "value": "${entry_prelaunch}",
+        "adapter": "kotlin"
+      }
+    ],
+    "client": [
+      {
+        "value": "${entry_main}",
+        "adapter": "kotlin"
+      }
+    ]
+  },
+  "mixins": [
+    "steamed.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "${dep_fabricloader}",
+    "minecraft": "${dep_minecraft}",
+    "java": ">=${java}",
+    "fabric-language-kotlin": "${dep_flk}",
+    "fabric-api": "*"
+  }
+}

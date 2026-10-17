@@ -1,0 +1,35 @@
+license = "${mod_license}"
+issueTrackerURL = "${mod_issues_url}"
+
+[[mods]]
+modId = "steamed"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+displayURL = "${mod_sources_url}"
+iconFile = "assets/steamed/icon.png"
+
+[[mixins]]
+config = "steamed.mixins.json"
+
+[[dependencies.steamed]]
+modId = "neoforge"
+type = "required"
+versionRange = "${dep_neoforge}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.steamed]]
+modId = "minecraft"
+type = "required"
+versionRange = "${dep_minecraft}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.steamed]]
+modId = "kotlinforforge"
+type = "required"
+versionRange = "${dep_kff}"
+ordering = "NONE"
+side = "CLIENT"
