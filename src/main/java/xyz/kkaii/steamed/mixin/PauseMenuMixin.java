@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import xyz.kkaii.steamed.compat.Compat;
 import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 
 @Mixin(PauseScreen.class)
@@ -23,8 +24,8 @@ public class PauseMenuMixin extends Screen {
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/layouts/GridLayout;arrangeElements()V", shift = At.Shift.BEFORE)
 	)
 	private void createPauseMenu(CallbackInfo ci, @Local(name = "helper") GridLayout.RowHelper helper) {
-		Button lobbyButton = Button.builder(Component.translatable("steamed.lobby.button"), _ ->
-				this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen()))
+		Button lobbyButton = Button.builder(Component.translatable("steamed.lobby.button"), pressed ->
+				Compat.show(this.minecraft, new SteamLobbyScreen(Compat.currentScreen(this.minecraft)))
 		).width(204).build();
 		helper.addChild(lobbyButton, 2);
 	}

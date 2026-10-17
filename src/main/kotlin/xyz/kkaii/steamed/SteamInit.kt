@@ -9,9 +9,8 @@ import net.minecraft.client.User
 import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.screens.DisconnectedScreen
 import net.minecraft.client.gui.screens.TitleScreen
-import net.minecraft.client.input.KeyEvent
 import net.minecraft.network.chat.Component
-import org.lwjgl.glfw.GLFW
+import xyz.kkaii.steamed.compat.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import xyz.kkaii.steamed.Steamed.friends
@@ -114,18 +113,17 @@ object SteamInit {
             Steamed.leaveLobby()
             disconnect()
             if (connectedToHost) {
-                mc.disconnect(
+                mc.disconnectTo(
                     DisconnectedScreen(
                         TitleScreen(),
                         Component.translatable("steamed.disconnected"),
                         Component.translatable("steamed.steam.lost")
-                    ), false
+                    )
                 )
             } else {
-                (mc.gui.screen() as? SteamLobbyScreen)?.let { mc.setScreenAndShow(SteamLobbyScreen(it.lastScreen)) }
+                (mc.currentScreen() as? SteamLobbyScreen)?.let { mc.show(SteamLobbyScreen(it.lastScreen)) }
             }
-            SystemToast.addOrUpdate(
-                mc.gui.toastManager(), STEAM_TOAST,
+            mc.toast(STEAM_TOAST,
                 Component.translatable("steamed.steam.lost.toast"), Component.translatable("steamed.steam.start_hint")
             )
         }
@@ -157,8 +155,7 @@ object SteamInit {
         if (warnedUnavailable || friends != null) return
         warnedUnavailable = true
         val mc = Minecraft.getInstance()
-        SystemToast.addOrUpdate(
-            mc.gui.toastManager(), STEAM_TOAST,
+        mc.toast(STEAM_TOAST,
             Component.translatable("steamed.steam.unavailable.toast"), Component.translatable("steamed.steam.start_hint")
         )
     }
@@ -226,7 +223,7 @@ object SteamInit {
                 if (Steamed.lobbyId.isSome() && Steamed.lobbyId.unwrap() == steamIDLobby) Steamed.lobbyId.some(null)
                 val instance = Minecraft.getInstance()
                 instance.execute {
-                    instance.gui.hud.chat.addClientSystemMessage(
+                    instance.systemMessage(
                         Component.translatable("steamed.lobby.enter_failed", enterFailureReason(response))
                     )
                 }
@@ -348,15 +345,13 @@ object SteamInit {
                 // Marks the lobby as Steamed's among every other Spacewar (480) lobby, for FriendLobbies.
                 kv(steamId, FriendLobbies.MARKER_KEY, Services.PLATFORM.modVersion())
                 kv(steamId, FriendLobbies.VISIBILITY_KEY, FriendLobbies.visibilityOf(Steamed.creatingLobbyType))
-                kv(steamId, FriendLobbies.MC_VERSION_KEY, SharedConstants.getCurrentVersion().name())
+                kv(steamId, FriendLobbies.MC_VERSION_KEY, minecraftVersionName())
                 kv(steamId, FriendLobbies.MC_PROTOCOL_KEY, SharedConstants.getProtocolVersion().toString())
 
-                instance.window.setTitle(
-                    GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"
-                )
+                instance.appendTitle(" in a steam lobby")
 
                 Steamed.startP2PGame()
-                instance.gui.screen()?.keyPressed(KeyEvent(KEY_F5, 0, 0))
+                instance.currentScreen()?.pressKey(KEY_F5)
             }
         }
     }

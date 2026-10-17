@@ -5,14 +5,11 @@ import com.codedisaster.steamworks.SteamNativeHandle
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.FontDescription
-import net.minecraft.network.chat.Style
 import net.minecraft.network.chat.contents.TranslatableContents
-import net.minecraft.network.chat.contents.objects.PlayerSprite
 import net.minecraft.resources.Identifier
-import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.compat.fontStyle
 import xyz.kkaii.steamed.platform.Services
 import java.nio.file.Files
 import java.nio.file.Path
@@ -36,17 +33,8 @@ object SteamPlayers {
     }
     private val known: ConcurrentHashMap<Long, UUID> by lazy { load() }
 
-    private val ICON: Component = Component.literal("\uE000")
-        .withStyle(
-            Style.EMPTY.withFont(
-                FontDescription.Resource(
-                    Identifier.fromNamespaceAndPath(
-                        "steamed",
-                        "nametag"
-                    )
-                )
-            )
-        )
+    private val ICON: Component =
+        Component.literal("\uE000").withStyle(fontStyle(Identifier.fromNamespaceAndPath("steamed", "nametag")))
 
     @JvmStatic
     fun decorate(uuid: UUID, name: Component): Component =
@@ -146,8 +134,6 @@ object SteamPlayers {
             LOGGER.warn("Couldn't write {}", knownFile, e)
         }
     }
-
-    fun head(uuid: UUID): Component = Component.`object`(PlayerSprite(ResolvableProfile.createUnresolved(uuid), true))
 
     fun clear() {
         uuids = emptySet()

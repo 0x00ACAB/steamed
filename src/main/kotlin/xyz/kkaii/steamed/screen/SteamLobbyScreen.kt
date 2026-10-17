@@ -5,9 +5,7 @@ import com.codedisaster.steamworks.SteamMatchmaking
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import com.mojang.logging.LogUtils
 import net.minecraft.ChatFormatting
-import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.*
 import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.components.events.GuiEventListener
@@ -15,22 +13,20 @@ import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.resources.language.I18n
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
-import net.minecraft.util.ARGB
-import net.minecraft.world.item.component.ResolvableProfile
 import org.slf4j.Logger
 import xyz.kkaii.steamed.FriendLobbies
 import xyz.kkaii.steamed.SteamInit
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
+import xyz.kkaii.steamed.compat.*
 import xyz.kkaii.steamed.platform.Services
 import java.util.*
 
-class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable("steamed.lobby.title")) {
+class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.translatable("steamed.lobby.title")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
     private var inviteButton: Button? = null
     private var createLobby: Button? = null
@@ -80,7 +76,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
             }).width(150).build())
 
             topFooterButtons.addChild(
-                CycleButton.builder<SteamMatchmaking.LobbyType>({ lobbyTypeName(it) }, lobbyType)
+                cycleButton<SteamMatchmaking.LobbyType>({ lobbyTypeName(it) }, lobbyType)
                     .withValues(SteamMatchmaking.LobbyType.FriendsOnly, SteamMatchmaking.LobbyType.Private)
                     .displayOnlyValue()
                     .withTooltip { Tooltip.create(lobbyTypeTooltip(it)) }
@@ -88,7 +84,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
             )
 
             bottomFooterButtons.addChild(
-                CycleButton.builder<Int>({ Component.literal(it.toString()) }, maxPlayers)
+                cycleButton<Int>({ Component.literal(it.toString()) }, maxPlayers)
                     .withValues(MAX_PLAYER_CHOICES)
                     .withTooltip { Tooltip.create(Component.translatable("steamed.lobby.max_players.tooltip")) }
                     .create(0, 0, 152, 20, Component.translatable("steamed.lobby.max_players")) { _, value ->
@@ -111,7 +107,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
             )
 
             this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.invite"), { `_` ->
-                this.minecraft.setScreenAndShow(SteamFriendListScreen(this))
+                this.minecraft.show(SteamFriendListScreen(this))
             }).width(113).build())
             if (!this.isOwner) disableButtons(Component.translatable("steamed.lobby.not_owner"), this.inviteButton)
         }
@@ -144,22 +140,22 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
     private fun retrySteam() {
         val connected = SteamInit.connect()
         val friends = Steamed.friends
-        SystemToast.addOrUpdate(
-            this.minecraft.gui.toastManager(), RETRY_TOAST,
+        this.minecraft.toast(
+            RETRY_TOAST,
             Component.translatable(if (connected) "steamed.steam.retry.connected" else "steamed.steam.retry.failed"),
             if (connected && friends != null) Component.translatable("steamed.title.logged_in", friends.personaName)
             else Component.translatable("steamed.steam.retry.failed.hint")
         )
-        if (connected) this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
+        if (connected) this.minecraft.show(SteamLobbyScreen(this.lastScreen))
     }
 
     private fun leaveLobby() {
         val connectedToHost = Steamed.isConnectedToLobbyHost()
         Steamed.leaveLobby()
         if (connectedToHost) {
-            this.minecraft.disconnectFromWorld(Component.translatable("steamed.lobby.left"))
+            this.minecraft.leaveWorld(Component.translatable("steamed.lobby.left"))
         } else {
-            this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen))
+            this.minecraft.show(SteamLobbyScreen(this.lastScreen))
         }
     }
 
@@ -187,15 +183,11 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
     }
 
     override fun onClose() {
-        this.minecraft.gui.setScreen(this.lastScreen)
+        this.minecraft.closeTo(this.lastScreen)
     }
 
-    override fun keyPressed(event: KeyEvent): Boolean {
-        if (event.key() == KEY_F5) {
-            this.screenExecutor.execute({ this.minecraft.setScreenAndShow(SteamLobbyScreen(this.lastScreen)) })
-        }
-
-        return super.keyPressed(event)
+    override fun onKey(key: Int) {
+        if (key == KEY_F5) this.screenExecutor.execute { this.minecraft.show(SteamLobbyScreen(this.lastScreen)) }
     }
 
     override fun canInterruptWithAnotherScreen(): Boolean {
@@ -230,10 +222,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
         override fun getRowWidth(): Int = 260
 
         inner class Entry(private val lobby: SteamID, val steamId: SteamID, private val isHost: Boolean) :
-            ContainerObjectSelectionList.Entry<Entry>() {
+            ContainerRow<Entry>() {
             private val name: String = Steamed.friends?.getFriendPersonaName(steamId) ?: I18n.get("steamed.lobby.unknown_member")
             private val isSelf = steamId == Steamed.user?.steamID
-            private var head: ResolvableProfile? = null
+            private var head: UUID? = null
             private var kicked = Steamed.kickedPeers.contains(steamId)
             private val kickButton: Button? =
                 if (this@SteamLobbyScreen.isOwner && !isSelf) {
@@ -251,8 +243,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
             }
 
             fun resolveHead() {
-                if (head == null) head =
-                    SteamPlayers.memberUuid(lobby, steamId)?.let { ResolvableProfile.createUnresolved(it) }
+                if (head == null) head = SteamPlayers.memberUuid(lobby, steamId)
             }
 
             private fun status(): Component? = when {
@@ -263,33 +254,27 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                 else -> null
             }
 
-            override fun extractContent(
-                graphics: GuiGraphicsExtractor,
-                mouseX: Int,
-                mouseY: Int,
-                hovered: Boolean,
-                a: Float
-            ) {
-                graphics.fill(this.contentX, this.contentY, this.contentRight, this.contentBottom, BG_FILL)
-                val faceX = this.contentX + 4
-                val faceY = this.contentY + (this.contentHeight - 24) / 2
-                head?.let { PlayerFaceExtractor.extractRenderState(graphics, it, faceX, faceY, 24) }
+            override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
+                graphics.fill(x, y, x + width, y + height, BG_FILL)
+                val faceX = x + 4
+                val faceY = y + (height - 24) / 2
+                head?.let { graphics.face(it, faceX, faceY, 24) }
 
                 val textX = faceX + 24 + 4
                 val status = status()
                 val font = this@SteamLobbyScreen.font
                 if (status == null) {
-                    graphics.text(font, name, textX, this.contentY + (this.contentHeight - 9) / 2, -1)
+                    graphics.text(font, name, textX, y + (height - 9) / 2, -1)
                 } else {
-                    val textY = this.contentY + (this.contentHeight - 18) / 2
+                    val textY = y + (height - 18) / 2
                     graphics.text(font, name, textX, textY, -1)
                     graphics.text(font, status, textX, textY + 12, STATUS_COLOR)
                 }
 
                 kickButton?.let {
-                    it.setX(this.contentRight - it.width - 4)
-                    it.setY(this.contentY + (this.contentHeight - it.height) / 2)
-                    it.extractRenderState(graphics, mouseX, mouseY, a)
+                    it.setX(x + width - it.width - 4)
+                    it.setY(y + (height - it.height) / 2)
+                    it.draw(graphics, mouseX, mouseY, a)
                 }
             }
 
@@ -324,40 +309,36 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
 
         override fun getRowWidth(): Int = 300
 
-        abstract inner class Row : ContainerObjectSelectionList.Entry<Row>() {
+        abstract inner class Row : ContainerRow<Row>() {
             protected abstract val buttons: List<AbstractWidget>
             protected val font get() = this@SteamLobbyScreen.font
 
-            protected fun drawRow(graphics: GuiGraphicsExtractor, face: UUID?, title: Component, subtitle: Component?) {
-                graphics.fill(this.contentX, this.contentY, this.contentRight, this.contentBottom, BG_FILL)
-                val faceX = this.contentX + 4
-                face?.let {
-                    PlayerFaceExtractor.extractRenderState(
-                        graphics,
-                        ResolvableProfile.createUnresolved(it),
-                        faceX,
-                        this.contentY + (this.contentHeight - 24) / 2,
-                        24
-                    )
-                }
+            protected fun drawRow(
+                graphics: Graphics, x: Int, y: Int, width: Int, height: Int, face: UUID?, title: Component, subtitle: Component?,
+            ) {
+                graphics.fill(x, y, x + width, y + height, BG_FILL)
+                val faceX = x + 4
+                face?.let { graphics.face(it, faceX, y + (height - 24) / 2, 24) }
                 val textX = faceX + 24 + 4
                 if (subtitle == null) {
-                    graphics.text(font, title, textX, this.contentY + (this.contentHeight - 9) / 2, -1)
+                    graphics.text(font, title, textX, y + (height - 9) / 2, -1)
                 } else {
-                    val textY = this.contentY + (this.contentHeight - 18) / 2
+                    val textY = y + (height - 18) / 2
                     graphics.text(font, title, textX, textY, -1)
                     graphics.text(font, subtitle, textX, textY + 12, STATUS_COLOR)
                 }
             }
 
-            protected fun placeButtons(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
-                var x = this.contentRight - 4
+            protected fun placeButtons(
+                graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float,
+            ) {
+                var right = x + width - 4
                 for (button in buttons.reversed()) {
-                    x -= button.width
-                    button.setX(x)
-                    button.setY(this.contentY + (this.contentHeight - button.height) / 2)
-                    button.extractRenderState(graphics, mouseX, mouseY, a)
-                    x -= 4
+                    right -= button.width
+                    button.setX(right)
+                    button.setY(y + (height - button.height) / 2)
+                    button.draw(graphics, mouseX, mouseY, a)
+                    right -= 4
                 }
             }
 
@@ -378,20 +359,14 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                 },
             )
 
-            override fun extractContent(
-                graphics: GuiGraphicsExtractor,
-                mouseX: Int,
-                mouseY: Int,
-                hovered: Boolean,
-                a: Float
-            ) {
+            override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
                 drawRow(
-                    graphics,
+                    graphics, x, y, width, height,
                     SteamPlayers.friendUuid(invite.inviter),
                     Component.literal(invite.inviterName),
                     Component.translatable("steamed.lobby.invited_you")
                 )
-                placeButtons(graphics, mouseX, mouseY, a)
+                placeButtons(graphics, x, y, width, height, mouseX, mouseY, a)
             }
         }
 
@@ -405,7 +380,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                         it.active = false
                         it.setTooltip(Tooltip.create(
                             if (!hosted.sameMinecraft) Component.translatable(
-                                "steamed.lobby.minecraft_mismatch", hosted.mcVersion, SharedConstants.getCurrentVersion().name()
+                                "steamed.lobby.minecraft_mismatch", hosted.mcVersion, minecraftVersionName()
                             )
                             else Component.translatable("steamed.lobby.version_mismatch", hosted.version, Services.PLATFORM.modVersion())
                         ))
@@ -413,43 +388,31 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                 },
             )
 
-            override fun extractContent(
-                graphics: GuiGraphicsExtractor,
-                mouseX: Int,
-                mouseY: Int,
-                hovered: Boolean,
-                a: Float
-            ) {
+            override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
                 val names = hosted.friends.joinToString(", ") { it.second }
                 val world = hosted.world.ifEmpty { I18n.get("steamed.lobby.a_world") }
                 val subtitle = if (hosted.compatible) Component.translatable("steamed.lobby.playing", world)
                 else if (!hosted.sameMinecraft) Component.translatable("steamed.lobby.minecraft", hosted.mcVersion).withStyle(ChatFormatting.RED)
                 else Component.translatable("steamed.lobby.version", hosted.version).withStyle(ChatFormatting.RED)
                 drawRow(
-                    graphics,
+                    graphics, x, y, width, height,
                     SteamPlayers.friendUuid(hosted.friends.first().first),
                     Component.literal(names),
                     subtitle
                 )
-                placeButtons(graphics, mouseX, mouseY, a)
+                placeButtons(graphics, x, y, width, height, mouseX, mouseY, a)
             }
         }
 
         inner class EmptyRow : Row() {
             override val buttons: List<AbstractWidget> = emptyList()
 
-            override fun extractContent(
-                graphics: GuiGraphicsExtractor,
-                mouseX: Int,
-                mouseY: Int,
-                hovered: Boolean,
-                a: Float
-            ) {
+            override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
                 graphics.centeredText(
                     font,
                     Component.translatable("steamed.lobby.no_friends_hosting"),
-                    this.contentX + this.contentWidth / 2,
-                    this.contentY + (this.contentHeight - 9) / 2,
+                    x + width / 2,
+                    y + (height - 9) / 2,
                     STATUS_COLOR
                 )
             }
@@ -458,13 +421,13 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
 
     companion object {
         private val LOGGER: Logger = LogUtils.getLogger()
-        private val BG_FILL = ARGB.color(255, 74, 74, 74)
+        private val BG_FILL = argb(255, 74, 74, 74)
         private val RETRY_TOAST = SystemToast.SystemToastId(4000L)
         private val RETRY_SPRITES = WidgetSprites(
             Identifier.fromNamespaceAndPath("steamed", "menu/retry"),
             Identifier.fromNamespaceAndPath("steamed", "menu/retry_highlighted")
         )
-        private val STATUS_COLOR = ARGB.color(140, 255, 255, 255)
+        private val STATUS_COLOR = argb(140, 255, 255, 255)
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly
 

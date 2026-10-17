@@ -4,18 +4,21 @@ import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamID
 import com.mojang.logging.LogUtils
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import org.slf4j.Logger
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
+import xyz.kkaii.steamed.compat.Graphics
+import xyz.kkaii.steamed.compat.SelectionRow
+import xyz.kkaii.steamed.compat.closeTo
+import xyz.kkaii.steamed.compat.face
+import java.util.UUID
 
 class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.translatable("steamed.invite_screen.title")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
@@ -61,7 +64,7 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
     }
 
     override fun onClose() {
-        this.minecraft.gui.setScreen(this.lastScreen)
+        this.minecraft.closeTo(this.lastScreen)
     }
 
     private inner class FriendSelectionList(minecraft: Minecraft) : ObjectSelectionList<FriendSelectionList.Entry>(
@@ -85,46 +88,40 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
         }
 
         inner class Entry(val steamId: SteamID, val name: String, private val state: SteamFriends.PersonaState) :
-            ObjectSelectionList.Entry<Entry>() {
+            SelectionRow<Entry>() {
             var invited = false
                 private set
 
-            private var head: Component? = null
+            private var uuid: UUID? = null
 
             init {
                 resolveHead()
             }
 
             fun resolveHead() {
-                if (head == null) head = SteamPlayers.friendUuid(steamId)?.let { SteamPlayers.head(it) }
+                if (uuid == null) uuid = SteamPlayers.friendUuid(steamId)
             }
 
             fun markInvited() {
                 invited = true
             }
 
-            override fun extractContent(
-                graphics: GuiGraphicsExtractor,
-                mouseX: Int,
-                mouseY: Int,
-                hovered: Boolean,
-                a: Float
-            ) {
-                val label = Component.empty()
-                head?.let { label.append(it).append(" ") }
-                label.append(if (invited) "$name (invited)" else "$name - $state")
-                graphics.centeredText(
-                    this@SteamFriendListScreen.font,
-                    label,
-                    this@FriendSelectionList.width / 2,
-                    this.contentYMiddle - 9 / 2,
-                    -1
-                )
+            override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
+                val font = this@SteamFriendListScreen.font
+                val label = if (invited) "$name (invited)" else "$name - $state"
+                val face = uuid
+                val total = font.width(label) + if (face != null) 10 else 0
+                var left = this@FriendSelectionList.width / 2 - total / 2
+                val top = y + (height - 9) / 2
+                if (face != null) {
+                    graphics.face(face, left, top, 8)
+                    left += 10
+                }
+                graphics.text(font, label, left, top, -1)
             }
 
-            override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+            override fun onClick() {
                 if (!invited) this@FriendSelectionList.selected = this
-                return super.mouseClicked(event, doubleClick)
             }
 
             override fun getNarration(): Component = Component.literal(name)

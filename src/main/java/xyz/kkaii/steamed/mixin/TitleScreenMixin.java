@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import xyz.kkaii.steamed.SteamPlayers;
 import xyz.kkaii.steamed.Steamed;
+import xyz.kkaii.steamed.compat.Compat;
 import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 
 @Mixin(TitleScreen.class)
@@ -39,7 +40,7 @@ public class TitleScreenMixin extends Screen {
 		int width = this.font.width(message);
 		int x = this.width - width - 2;
 		// One line above vanilla's copyright, which sits at height - 10.
-		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 20, width, 10, message, _ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this.minecraft.gui.screen())), this.font));
+		this.addRenderableWidget(new PlainTextButton(x, thisObject.height - 20, width, 10, message, pressed -> Compat.show(this.minecraft, new SteamLobbyScreen(Compat.currentScreen(this.minecraft))), this.font));
 
 		steamed$addLobbyButton();
 	}
@@ -54,7 +55,7 @@ public class TitleScreenMixin extends Screen {
 				Component label = Component.translatable("steamed.lobby.button");
 				ImageButton button = new ImageButton(
 						widget.getX() + widget.getWidth() + 4, widget.getY(), 20, 20, STEAMED_LOBBY_SPRITES,
-						_ -> this.minecraft.setScreenAndShow(new SteamLobbyScreen(this)), label
+						pressed -> Compat.show(this.minecraft, new SteamLobbyScreen(this)), label
 				);
 				button.setTooltip(Tooltip.create(label));
 				this.addRenderableWidget(button);

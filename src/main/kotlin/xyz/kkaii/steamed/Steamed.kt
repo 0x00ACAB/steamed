@@ -5,7 +5,6 @@ package xyz.kkaii.steamed
 
 import com.codedisaster.steamworks.*
 import net.minecraft.ChatFormatting
-import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.screens.ConnectScreen
@@ -15,14 +14,12 @@ import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.resources.language.I18n
 import net.minecraft.client.server.IntegratedServer
-import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.chat.Style
-import net.minecraft.server.MinecraftServer
 import net.minecraft.util.HttpUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import xyz.kkaii.steamed.compat.*
 import xyz.kkaii.steamed.lib.Option
 import xyz.kkaii.steamed.mixin.ConnectScreenAccessor
 import xyz.kkaii.steamed.net.*
@@ -33,7 +30,6 @@ import java.lang.ref.WeakReference
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.net.URI
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.Volatile
@@ -132,12 +128,11 @@ object Steamed {
         val mc = Minecraft.getInstance()
         val inLobby = lobbyId.isSome()
         mc.execute {
-            SystemToast.addOrUpdate(
-                mc.gui.toastManager(), INVITE_TOAST,
+            mc.toast(INVITE_TOAST,
                 Component.translatable("steamed.invite.toast", name),
                 Component.translatable(if (inLobby) "steamed.invite.toast.leave_first" else "steamed.invite.toast.open_lobby")
             )
-            mc.gui.hud.chat.addClientSystemMessage(
+            mc.systemMessage(
                 Component.translatable(
                     if (inLobby) "steamed.invite.chat.leave_first" else "steamed.invite.chat.open_lobby", name
                 )
@@ -207,9 +202,9 @@ object Steamed {
             leaveLobby()
             val text = Component.translatable(reason)
             if (connectedToHost) {
-                mc.disconnect(DisconnectedScreen(TitleScreen(), Component.translatable("steamed.disconnected"), text), false)
+                mc.disconnectTo(DisconnectedScreen(TitleScreen(), Component.translatable("steamed.disconnected"), text))
             } else if (mc.level != null) {
-                mc.gui.hud.chat.addClientSystemMessage(text)
+                mc.systemMessage(text)
             }
         }
     }
@@ -270,7 +265,7 @@ object Steamed {
             LOGGER.error(
                 "Unable to start local game server, (E01: multiplayer not allowed)"
             )
-            mc.gui.hud.chat.addClientSystemMessage(
+            mc.systemMessage(
                 Component.translatable("steamed.host.no_world")
             )
             return
@@ -294,13 +289,13 @@ object Steamed {
             port = HttpUtil.getAvailablePort()
             publishingForSteam = true
             val published = try {
-                server.publishServer(MinecraftServer.MultiplayerScope.LAN, server.defaultGameType, true, port)
+                publishForSteam(server, port)
             } finally {
                 publishingForSteam = false
             }
             if (!published) {
                 LOGGER.error("Unable to start local game server, (E03: publishServer failed)")
-                mc.gui.hud.chat.addClientSystemMessage(Component.translatable("commands.publish.failed"))
+                mc.systemMessage(Component.translatable("commands.publish.failed"))
                 return
             }
             steamPublishedServer = WeakReference(server)
@@ -323,12 +318,12 @@ object Steamed {
         }
 
         matchmaking?.setLobbyGameServer(lobbyId.unwrap(), 0, 0, user!!.steamID)
-        mc.gui.hud.chat.addClientSystemMessage(message)
+        mc.systemMessage(message)
 
         val tunnels = PublicTunnelMods.installed()
         if (tunnels.isNotEmpty()) {
             LOGGER.warn("Public tunnel mods installed alongside Steam hosting: {}", tunnels)
-            mc.gui.hud.chat.addClientSystemMessage(
+            mc.systemMessage(
                 Component.translatable("steamed.host.public_tunnel", tunnels.joinToString(", ")).withStyle(ChatFormatting.GOLD)
             )
         }
@@ -352,9 +347,9 @@ object Steamed {
 
         val instance: Minecraft = Minecraft.getInstance()
         instance.execute {
-            val current = instance.gui.screen()
+            val current = instance.currentScreen()
             val parent = if (current is SteamConnectingScreen) current.lastScreen else current
-            instance.setScreenAndShow(SteamConnectingScreen(parent, hostName))
+            instance.show(SteamConnectingScreen(parent, hostName))
         }
 
         relay.start()
@@ -371,11 +366,11 @@ object Steamed {
             onDenied = { reason ->
                 LOGGER.warn("Host {} refused the connection: {}", hostSteamId.accountID, reason)
                 instance.execute {
-                    val screen = instance.gui.screen()
+                    val screen = instance.currentScreen()
                     if (screen is SteamConnectingScreen) {
                         screen.fail(denialText(reason))
                     } else if (lobbyId.isSome()) {
-                        instance.gui.hud.chat.addClientSystemMessage(
+                        instance.systemMessage(
                             Component.translatable("steamed.join.failed", hostName, denialText(reason))
                         )
                     }
@@ -426,12 +421,12 @@ object Steamed {
         instance.execute {
             val address = ServerAddress("127.0.0.1", localPort)
             val serverData = ServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort", ServerData.Type.LAN)
-            val current = instance.gui.screen()
+            val current = instance.currentScreen()
             val parent =
                 (if (current is SteamConnectingScreen) current.lastScreen else current) ?: SteamLobbyScreen(null)
             lobbyWorldStarted = true
             ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
-            (instance.gui.screen() as? ConnectScreenAccessor)
+            (instance.currentScreen() as? ConnectScreenAccessor)
                 ?.`steamed$updateStatus`(Component.translatable("steamed.join.establishing", hostName))
         }
     }
@@ -452,12 +447,11 @@ object Steamed {
                     message.append(
                         Component.translatable("steamed.map.open", name).withStyle(
                             Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
-                                .withClickEvent(ClickEvent.OpenUrl(URI(url)))
-                                .withHoverEvent(HoverEvent.ShowText(Component.translatable("steamed.map.open.hover", url)))
+                                .opensUrl(url, Component.translatable("steamed.map.open.hover", url))
                         )
                     )
                 }
-                mc.gui.hud.chat.addClientSystemMessage(message)
+                mc.systemMessage(message)
             }
         }
     }
@@ -465,7 +459,7 @@ object Steamed {
     fun joinHostedLobby() {
         if (!lobbyId.isSome()) {
             Minecraft.getInstance().execute {
-                Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.translatable("steamed.join.not_in_lobby"))
+                Minecraft.getInstance().systemMessage(Component.translatable("steamed.join.not_in_lobby"))
             }
             return
         }
@@ -478,14 +472,14 @@ object Steamed {
         if (!hasServer) {
             LOGGER.error("Lobby has no game server set yet")
             Minecraft.getInstance().execute {
-                Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.translatable("steamed.join.not_started"))
+                Minecraft.getInstance().systemMessage(Component.translatable("steamed.join.not_started"))
             }
             return
         }
 
         if (outServer == user?.steamID) {
             Minecraft.getInstance().execute {
-                Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.translatable("steamed.join.you_are_host"))
+                Minecraft.getInstance().systemMessage(Component.translatable("steamed.join.you_are_host"))
             }
             return
         }
@@ -496,9 +490,9 @@ object Steamed {
             val hostVersion = matchmaking?.getLobbyData(lobby, FriendLobbies.MC_VERSION_KEY).orEmpty()
             LOGGER.warn("Host is on Minecraft {}, not joining", hostVersion)
             Minecraft.getInstance().execute {
-                Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(
+                Minecraft.getInstance().systemMessage(
                     Component.translatable(
-                        "steamed.join.wrong_minecraft", hostVersion, SharedConstants.getCurrentVersion().name()
+                        "steamed.join.wrong_minecraft", hostVersion, minecraftVersionName()
                     ).withStyle(ChatFormatting.RED)
                 )
             }
