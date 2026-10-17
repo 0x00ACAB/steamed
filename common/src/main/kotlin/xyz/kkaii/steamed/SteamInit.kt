@@ -54,7 +54,7 @@ object SteamInit {
     }
 
     private fun loadLibraries(): Boolean {
-        if (!librariesLoaded) librariesLoaded = SteamAPI.loadLibraries(SteamLibraryLoaderLwjgl3())
+        if (!librariesLoaded) librariesLoaded = SteamAPI.loadLibraries(SteamNatives)
         if (!librariesLoaded) LOGGER.error("Failed to load steam libraries")
         return librariesLoaded
     }

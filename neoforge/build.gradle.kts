@@ -19,12 +19,17 @@ neoForge {
     }
 }
 
+val steamworks: Configuration by configurations.creating
+
 dependencies {
     implementation("com.code-disaster.steamworks4j:steamworks4j:1.10.0")
-    implementation("com.code-disaster.steamworks4j:steamworks4j-lwjgl3:1.10.0")
+    steamworks("com.code-disaster.steamworks4j:steamworks4j:1.10.0") { isTransitive = false }
+}
 
-    "jarJar"("com.code-disaster.steamworks4j:steamworks4j:1.10.0")
-    "jarJar"("com.code-disaster.steamworks4j:steamworks4j-lwjgl3:1.10.0")
+// Packed in rather than jarJar'd: NeoForge loads jarJar'd libraries in a separate class loader from the mod, and
+// SteamNatives has to share SteamAPI's loader for JNI to bind.
+tasks.jar {
+    from(steamworks.elements.map { jars -> jars.map { zipTree(it) } }) { exclude("META-INF/**") }
 }
 
 val loaderAttribute = Attribute.of("xyz.kkaii.steamed.loader", String::class.java)

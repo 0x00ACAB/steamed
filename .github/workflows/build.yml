@@ -95,9 +95,10 @@ jobs:
           mc="$(sed -n 's/^minecraft_version=//p' src/gradle.properties)"
           changelog="$(gh release view "$GITHUB_REF_NAME" --json body -q .body)"
           fabric_deps='[{"project_id":"P7dR8mSH","dependency_type":"required"},{"project_id":"Ha28R6CL","dependency_type":"required"}]'
+          neoforge_deps='[{"project_id":"ordsPcFz","dependency_type":"required"}]'
           for loader in fabric neoforge quilt; do
-            deps='[]'
-            [ "$loader" != neoforge ] && deps="$fabric_deps"
+            deps="$fabric_deps"
+            [ "$loader" = neoforge ] && deps="$neoforge_deps"
             jar="steamed-$loader-$version.jar"
             data="$(jq -n --arg v "$version+$loader" --arg l "$loader" --arg mc "$mc" --arg c "$changelog" \
               --arg jar "$jar" --argjson deps "$deps" '{

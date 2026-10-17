@@ -11,11 +11,14 @@ steamworks4j). Progress and plans are in `milestones.md`.
   convention plugin (not Architectury) — see Layout below
 - Fabric: Fabric Loader 0.19.5, Fabric API (required: nothing imports it, but its resource loader is what loads
   `assets/steamed`; neither Fabric nor Quilt Loader do that alone), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
-- NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle)
+- NeoForge: NeoForge 26.2.0.88, `net.neoforged.moddev` (ModDevGradle), Kotlin for Forge (required at runtime: nothing
+  else provides the Kotlin stdlib, and `runClient` hides that since Gradle puts it on the classpath)
 - Quilt: `org.quiltmc:quilt-loader` plus plain Fabric API (Quilted Fabric API stops at 1.20.1), reusing plain
   `net.fabricmc.fabric-loom` (not a separate Quilt Loom — see Gotchas)
-- steamworks4j 1.10.0, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge via ModDevGradle's
-  `jarJar`
+- steamworks4j 1.10.0, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge by packing its classes
+  and natives straight into the jar (not `jarJar`: NeoForge puts jarJar'd plain libraries in a separate "FML Plugins"
+  class loader, and JNI only binds natives for classes in the loader that called `System.load`). `SteamNatives` loads
+  the natives itself rather than through steamworks4j's LWJGL loader, for the same reason
 - Versions live in `gradle.properties`, and so does the mod's metadata (`mod_*` keys): `multiloader-loader` expands them
   into `fabric.mod.json`/`neoforge.mods.toml`, so edit the properties, not those files. Gradle reads the file as
   ISO-8859-1, so non-ASCII needs `\u` escapes
@@ -39,7 +42,8 @@ steamworks4j). Progress and plans are in `milestones.md`.
 GitHub Actions (`.github/workflows/build.yml`) builds every push and uploads the three jars as artifacts. Pushing a tag
 `v<mod_version>` (it must match `gradle.properties`, or the build fails) also publishes a GitHub pre-release with the
 jars, using `.github/release-notes/<tag>.md` as the notes (GitHub's generated notes if that file is missing); release immutability is on, so the job drafts, attaches, then publishes. The same job then uploads one Modrinth version per loader
-(`<version>+<loader>`, beta, the release notes as the changelog; Fabric and Quilt require Fabric API and FLK) to
+(`<version>+<loader>`, beta, the release notes as the changelog; Fabric and Quilt require Fabric API and FLK, NeoForge
+requires Kotlin for Forge) to
 project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret
 
 `.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew classes`
@@ -56,7 +60,7 @@ and CI). They cover pure logic only, pulled into small `internal` objects (`net/
 Base package `xyz.kkaii.steamed` throughout. Four modules:
 
 - `common/`: almost everything — `Steamed.kt` (a plain `object`: Steam interface refs, lobby state, `startP2PGame()`/
-  `connectToHost()`/`joinHostedLobby()`), `SteamInit.kt` (Steam init sequence + all matchmaking callbacks, was
+  `connectToHost()`/`joinHostedLobby()`), `SteamNatives.kt` (extracts and `System.load`s steamworks4j's natives), `SteamInit.kt` (Steam init sequence + all matchmaking callbacks, was
   `entrypoint/PreLaunch.kt` before the multi-loader split), `net/SteamP2PRelay.kt` (generic TCP<->Steam P2P bridge, the
   Minecraft transport, channel 0), `net/SteamP2PVoiceRelay.kt` (UDP sibling on channel 1, tunnels voice-mod traffic,
   several ports multiplexed by a 2-byte port header; see M11/M11b in `MILESTONES.md`), `net/SvcIntegration.kt`/
@@ -140,6 +144,9 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
   `fabric/.gradle/loom-cache/minecraftMaven/.../*-sources.jar` (much faster than reconstructing signatures from
   `javap`). Both loaders build against the same official-mapped vanilla Minecraft, so signatures found this way apply to
   both
+- `runClient` puts every library on one classpath, so it hides packaging bugs: 0.1.3's NeoForge jar crashed on a real
+  install (no Kotlin stdlib, then unbound natives) while `runClient` worked. Check a real Prism instance with the
+  built jar before releasing
 - Mixin injection points are string-matched; they break on Minecraft updates
 - `IntegratedServer.getMaxPlayers()` is hardcoded to 8. Lobby sizes above that only work because
   `IntegratedServerMixin` overrides it with `Steamed.hostedMaxPlayers` while hosting

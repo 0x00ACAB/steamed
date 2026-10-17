@@ -14,7 +14,6 @@ dependencies {
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.5")!!)
 
     implementation("com.code-disaster.steamworks4j:steamworks4j:1.10.0")
-    implementation("com.code-disaster.steamworks4j:steamworks4j-lwjgl3:1.10.0")
 }
 
 configurations {

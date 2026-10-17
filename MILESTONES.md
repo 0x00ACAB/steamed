@@ -193,7 +193,7 @@ instead of generic Architectury tutorial knowledge.
 Not yet done: an actual create-lobby/host test specifically on the NeoForge build (verified Steam init and mixins load,
 but hosting/joining itself has only been exercised on Fabric so far).
 
-### Quilt: tried, builds, but not verified end to end
+### Quilt: tried, builds (since verified end to end, see M9 and M10 followups)
 
 Added a `quilt` module the same way as `fabric`/`neoforge` — same `common` reuse, plain `net.fabricmc.fabric-loom` (not
 a separate Quilt Loom), `org.quiltmc:quilt-loader` instead of `fabric-loader`. Steamed doesn't call any actual Fabric
@@ -203,7 +203,7 @@ imported), so no QSL/QFAPI dependency was needed at all, which matters because *
 
 - [x] `:quilt:build` succeeds — compiles cleanly against `common`, produces a real jar with `steamed.mixins.json`, both
   mixins, and steamworks4j/weupnp bundled via Loom's `include()` exactly like Fabric's
-- [ ] `:quilt:runClient` does **not** work: `quilt-loader` transitively pulls in real `fabric-loader` (confirmed via
+- [x] ~~`:quilt:runClient` does **not** work~~ (fixed 2026-10-17, see M10 followups): `quilt-loader` transitively pulls in real `fabric-loader` (confirmed via
   `./gradlew :quilt:dependencies`), and Fabric Loom's own dev-environment tooling adds another copy independently
   regardless of dependency excludes — both define classes in the same `net.fabricmc.loader.impl.*` package with
   different jar signers, which throws `SecurityException: ... signer information does not match ...` at launch. This
@@ -517,7 +517,9 @@ not, members fall back to the old timeout), and friends-list "Join Game".
 
 - [x] Dropped weupnp (LGPL) along with the dormant `UPnPublisher`/`IServerPublisher`/`IPv4` fallback (2026-10-16). Jars
   now bundle only steamworks4j, and `THIRD_PARTY_NOTICES` lists only it
-- [ ] Confirm a real Quilt install actually loads with FLK 1.13.14
+- [x] Confirm a real Quilt install actually loads with FLK 1.13.14 (2026-10-17): the 0.1.3 release jar in a Prism
+  instance with Quilt Loader 0.30.1, FLK 1.13.14 and Fabric API 0.161.0 loads, initialises Steam, and renders the
+  lobby icon
 
 ### M11 followups
 
@@ -591,7 +593,14 @@ not, members fall back to the old timeout), and friends-list "Join Game".
   server first to learn the protocol, which would use up the joiner's single-accept loopback bridge, so Steamed should
   hand ViaFabric the lobby's `mc_protocol` for that connection instead
 
-- [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
+- [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load. Hosting
+  works on a real install (2026-10-17, Prism, NeoForge 26.2.0.93 + KFF 6.4.0); joining still needs a second account
+- [x] NeoForge 0.1.3 didn't start on a real install, only under `runClient` (found 2026-10-17 in Prism). First
+  `NoClassDefFoundError: kotlin/jvm/internal/Intrinsics`: nothing provided the Kotlin stdlib, so Kotlin for Forge is
+  now a required dependency. Then `UnsatisfiedLinkError` on `SteamAPI.nativeRestartAppIfNecessary`: NeoForge loads
+  jarJar'd libraries in an "FML Plugins" class loader, and steamworks4j's LWJGL loader calls `System.load` from LWJGL's
+  class, so the natives bound to neither. `SteamNatives` now loads them from Steamed's own code, and the NeoForge jar
+  packs steamworks4j in directly. Fixed in 0.1.4; all three loaders verified initialising Steam in real Prism instances
 - [x] Re-ran `:neoforge:runClient` (2026-10-16) with Steam running: NeoForge loaded the templated `neoforge.mods.toml`,
   `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed
   errors
