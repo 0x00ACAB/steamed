@@ -6,10 +6,10 @@ import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.contents.TranslatableContents
-import net.minecraft.resources.Identifier
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import xyz.kkaii.steamed.compat.fontStyle
+import xyz.kkaii.steamed.compat.resourceId
 import xyz.kkaii.steamed.platform.Services
 import java.nio.file.Files
 import java.nio.file.Path
@@ -34,7 +34,7 @@ object SteamPlayers {
     private val known: ConcurrentHashMap<Long, UUID> by lazy { load() }
 
     private val ICON: Component =
-        Component.literal("\uE000").withStyle(fontStyle(Identifier.fromNamespaceAndPath("steamed", "nametag")))
+        Component.literal("\uE000").withStyle(fontStyle(resourceId("steamed", "nametag")))
 
     @JvmStatic
     fun decorate(uuid: UUID, name: Component): Component =

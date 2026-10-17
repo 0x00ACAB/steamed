@@ -1,0 +1,35 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "${mod_license}"
+issueTrackerURL = "${mod_issues_url}"
+
+[[mods]]
+modId = "steamed"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+displayURL = "${mod_sources_url}"
+logoFile = "assets/steamed/icon.png"
+displayTest = "IGNORE_ALL_VERSION"
+
+[[dependencies.steamed]]
+modId = "forge"
+mandatory = true
+versionRange = "${dep_forge}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.steamed]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${dep_minecraft}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.steamed]]
+modId = "kotlinforforge"
+mandatory = true
+versionRange = "${dep_kff}"
+ordering = "NONE"
+side = "CLIENT"

@@ -4,12 +4,14 @@ pluginManagement {
         gradlePluginPortal()
         maven("https://maven.fabricmc.net/") { name = "Fabric" }
         maven("https://maven.neoforged.net/releases/") { name = "NeoForged" }
+        maven("https://maven.minecraftforge.net/") { name = "MinecraftForge" }
         maven("https://maven.kikugie.dev/releases") { name = "KikuGie Releases" }
         maven("https://maven.kikugie.dev/snapshots") { name = "KikuGie Snapshots" }
     }
     plugins {
         kotlin("jvm") version "2.4.20"
         id("net.neoforged.moddev") version "2.0.147"
+        id("net.neoforged.moddev.legacyforge") version "2.0.147"
     }
 }
 
@@ -24,6 +26,7 @@ stonecutter {
         fun match(version: String, vararg loaders: String) {
             for (loader in loaders) version("$version-$loader", version).buildscript("build.$loader.gradle.kts")
         }
+        match("1.20.1", "fabric", "forge")
         match("1.21.1", "fabric", "neoforge")
         match("26.2", "fabric", "neoforge", "quilt")
         vcsVersion = "26.2-fabric"

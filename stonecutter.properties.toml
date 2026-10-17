@@ -49,3 +49,19 @@ meta.minecraft_neoforge = "[1.21,1.21.2)"
 meta.neo = "[21.1,)"
 meta.kff = "[5.12,)"
 deps.kff = "5.12.0"
+
+["1.20.1"]
+mod.java = "17"
+mod.mc_releases = ["1.20.1"]
+mod.mixins = ["ChatListenerMixin", "ConnectScreenAccessor", "IntegratedServerMixin", "MinecraftAccessor",
+    "PauseMenuMixin", "PlayerListMixin", "PlayerRendererMixin", "PlayerTabOverlayMixin", "SplashManagerMixin",
+    "TitleScreenMixin"]
+deps.fabric_api = "0.92.12+1.20.1"
+deps.mcforge = "1.20.1-47.4.28"
+meta.minecraft_fabric = "~1.20.1"
+meta.minecraft_forge = "[1.20.1,1.20.2)"
+meta.mcforge = "[47,)"
+# KFF 4.12.0 is the last for Forge 1.20.1 and ships Kotlin 2.2.21, so this node compiles against API 2.2.
+meta.kff_forge = "[4.12,)"
+deps.kff_forge = "4.12.0"
+deps.mixinextras = "0.5.5"

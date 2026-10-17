@@ -9,9 +9,10 @@ No port forwarding, no third-party tunnels: connections go through Steam's own p
 
 <sub><i>Steam from the steamed craft we're having.</i></sub>
 
-![Minecraft 26.2 | 1.21.1](https://img.shields.io/badge/Minecraft-26.2%20%7C%201.21.1-62B47A?style=flat-square)
+![Minecraft 26.2 | 1.21.1 | 1.20.1](https://img.shields.io/badge/Minecraft-26.2%20%7C%201.21.1%20%7C%201.20.1-62B47A?style=flat-square)
 ![Fabric](https://img.shields.io/badge/loader-Fabric-DBD0B4?style=flat-square)
 ![NeoForge](https://img.shields.io/badge/loader-NeoForge-D7742F?style=flat-square)
+![Forge](https://img.shields.io/badge/loader-Forge-1E2D3D?style=flat-square)
 [![Build](https://img.shields.io/github/actions/workflow/status/0x00ACAB/steamed/build.yml?branch=main&style=flat-square&label=build)](https://github.com/0x00ACAB/steamed/actions/workflows/build.yml)
 ![Status: beta](https://img.shields.io/badge/status-beta-E0A030?style=flat-square)
 ![License: CC0-1.0](https://img.shields.io/badge/license-CC0--1.0-lightgrey?style=flat-square)
@@ -73,10 +74,11 @@ connection to your world. To Minecraft on both sides it looks like an ordinary l
 
 |                          |                                                                                                      |
 |--------------------------|------------------------------------------------------------------------------------------------------|
-| **Minecraft**            | 26.2 (Java 25) or 1.21.1 (Java 21). Get the jar for your version: `+26.2` or `+1.21.1` in its name |
+| **Minecraft**            | 26.2 (Java 25), 1.21.1 (Java 21) or 1.20.1 (Java 17). Get the jar for your version: `+26.2`, `+1.21.1` or `+1.20.1` in its name |
 | **Steam**                | The Steam client must be running and signed in, for everyone                                         |
 | **Fabric**               | Fabric Loader 0.19.5+, [Fabric API](https://modrinth.com/mod/fabric-api) and [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin) |
 | **NeoForge**             | NeoForge 26.2 with [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) 6.4+, or NeoForge 21.1 (1.21.1) with Kotlin for Forge 5.12+ |
+| **Forge** (1.20.1 only)  | Forge 47.x with [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge) 4.12+ |
 | **Quilt** (experimental, 26.2 only) | Fabric API (the regular one; Quilted Fabric API isn't updated for 26.2) and Fabric Language Kotlin **1.13.14+kotlin.2.4.20**, unless you're on Quilt Loader 0.30.2 beta or newer |
 
 Everyone in a lobby needs the same version of Steamed and of Minecraft.
@@ -106,7 +108,7 @@ started from Steam. Steamed doesn't need it.
 
 ```sh
 ./gradlew build                    # every Minecraft version and loader
-./gradlew :26.2-fabric:build       # or one node: 26.2-neoforge, 26.2-quilt, 1.21.1-fabric, 1.21.1-neoforge
+./gradlew :26.2-fabric:build       # or one node: 26.2-neoforge, 26.2-quilt, 1.21.1-fabric, 1.21.1-neoforge, 1.20.1-fabric, 1.20.1-forge
 ./gradlew :26.2-fabric:runClient   # dev client (Steam must be running), works for every node
 ```
 

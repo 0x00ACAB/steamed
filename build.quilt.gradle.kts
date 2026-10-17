@@ -13,7 +13,7 @@ group = prop("mod.group")
 base.archivesName = "steamed-quilt"
 
 sourceSets.main {
-    kotlin.exclude("xyz/kkaii/steamed/fabric/**", "xyz/kkaii/steamed/neoforge/**")
+    kotlin.exclude("xyz/kkaii/steamed/fabric/**", "xyz/kkaii/steamed/neoforge/**", "xyz/kkaii/steamed/forge/**")
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
@@ -94,6 +94,7 @@ tasks.processResources {
     ).associate { "mod_$it" to prop("mod.$it") } + mapOf(
         "java" to javaVersion.toString(),
         "mixins" to mixins,
+        "refmap" to "",
         "entry_main" to "xyz.kkaii.steamed.quilt.SteamedQuilt",
         "entry_prelaunch" to "xyz.kkaii.steamed.quilt.SteamPreLaunchQuilt",
         "dep_fabricloader" to prop("meta.fabricloader_quilt"),
@@ -103,7 +104,7 @@ tasks.processResources {
     )
     inputs.properties(metadata)
     filesMatching(listOf("fabric.mod.json", "steamed.mixins.json", "META-INF/services/*")) { expand(metadata) }
-    exclude("META-INF/neoforge.mods.toml")
+    exclude("META-INF/neoforge.mods.toml", "META-INF/mods.toml", "pack.mcmeta")
 }
 
 tasks.withType<Jar>().configureEach {

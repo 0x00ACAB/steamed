@@ -1,6 +1,7 @@
 {
   "required": true,
-  "package": "xyz.kkaii.steamed.mixin",
+  "minVersion": "0.8",
+  "package": "xyz.kkaii.steamed.mixin",${refmap}
   "compatibilityLevel": "JAVA_${java}",
   "mixins": [
     ${mixins}

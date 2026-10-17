@@ -1,14 +1,14 @@
 # Steamed
 
-Client-side Fabric + NeoForge (+ Quilt on 26.2) mod that lets players host and join Minecraft worlds through Steam lobbies (Steamworks via
+Client-side Fabric + NeoForge (+ Quilt on 26.2, Forge on 1.20.1) mod that lets players host and join Minecraft worlds through Steam lobbies (Steamworks via
 steamworks4j). Progress and plans are in `milestones.md`.
 
 ## Stack
 
-- Minecraft 26.2 (Java 25; Fabric, NeoForge, Quilt) and 1.21.1 (Java 21; Fabric, NeoForge). Nodes: `26.2-fabric`,
-  `26.2-neoforge`, `26.2-quilt`, `1.21.1-fabric`, `1.21.1-neoforge`
-- Kotlin 2.4.20 for logic, Java only for mixins (and no Java 22+ syntax such as `_` lambda parameters: 1.21.1 builds
-  with Java 21)
+- Minecraft 26.2 (Java 25; Fabric, NeoForge, Quilt), 1.21.1 (Java 21; Fabric, NeoForge) and 1.20.1 (Java 17; Fabric,
+  Forge). Nodes: `26.2-fabric`, `26.2-neoforge`, `26.2-quilt`, `1.21.1-fabric`, `1.21.1-neoforge`, `1.20.1-fabric`,
+  `1.20.1-forge`
+- Kotlin 2.4.20 for logic, Java only for mixins (and nothing past Java 17: 1.20.1 builds with Java 17)
 - Multi-loader and multi-version: Stonecutter 0.9.8 nodes named `<mc>-<loader>` over one `src/` tree, set up after
   Multicutter's layout (`pajicadvance/multicutter` at `bf13a3b`); Fabric and Quilt go through `dev.kikugie.loom-back-compat`
   (Fabric Loom 1.18.2). Nodes are declared in `settings.gradle.kts`; each loader has its own `build.<loader>.gradle.kts`
@@ -16,6 +16,13 @@ steamworks4j). Progress and plans are in `milestones.md`.
   `assets/steamed`; neither Fabric nor Quilt Loader do that alone), Fabric Language Kotlin, `net.fabricmc.fabric-loom`
 - NeoForge: NeoForge 26.2.0.88 / 21.1.262, `net.neoforged.moddev` (ModDevGradle), Kotlin for Forge (required at runtime: nothing
   else provides the Kotlin stdlib, and `runClient` hides that since Gradle puts it on the classpath)
+- Forge (1.20.1 only): Forge 47.4.28 through ModDevGradle's `net.neoforged.moddev.legacyforge` (`build.forge.gradle.kts`),
+  Kotlin for Forge 4.12.0. KFF 4.12 is the last for 1.20.1 and ships the Kotlin 2.2 stdlib, so this node compiles with
+  `apiVersion = 2.2`. Production runs on SRG names: the mixin annotation processor writes `steamed.refmap.json` and
+  `reobfJar` produces the jar in `build/libs` (the unobfuscated one goes to `build/devlibs`). Forge 1.20.1 reads mixin
+  configs from the `MixinConfigs` manifest attribute (not `mods.toml`), ignores a mod's resources without `pack.mcmeta`
+  (format 15, Forge-only), and doesn't bundle MixinExtras, so `mixinextras-forge` is jarJar'd. Its metadata is
+  `META-INF/mods.toml` (`mandatory = true`, not `type`)
 - Quilt: `org.quiltmc:quilt-loader` plus plain Fabric API (Quilted Fabric API stops at 1.20.1), reusing plain
   Fabric Loom (not a separate Quilt Loom — see Gotchas)
 - steamworks4j 1.10.0, bundled per-platform: Fabric and Quilt via Loom's `include()`, NeoForge by packing its classes
@@ -26,13 +33,13 @@ steamworks4j). Progress and plans are in `milestones.md`.
   metadata (`mod.*` keys): each `build.<loader>.gradle.kts` expands them into `fabric.mod.json`, `neoforge.mods.toml`,
   `steamed.mixins.json` (Java level, mixin list) and the `IPlatformHelper` service file, so edit the TOML, not those
   files. A dotted key segment equal to a node tag (`fabric`, `neoforge`, `quilt`, a Minecraft version) is read as a
-  tag section and vanishes, hence `deps.neo`, not `deps.neoforge`
+  tag section and vanishes, hence `deps.neo`, not `deps.neoforge`, and `deps.mcforge`/`meta.mcforge`, not `*.forge`
 
 ## Release
 
 - Releases should go both on modrinth and github releases
-- Each release should include every node's jar (26.2 Fabric, NeoForge, Quilt; 1.21.1 Fabric, NeoForge; classic Forge
-  exempt for now)
+- Each release should include every node's jar (26.2 Fabric, NeoForge, Quilt; 1.21.1 Fabric, NeoForge; 1.20.1
+  Fabric, Forge)
 - Release notes should detail the changes and improvements in each version
 
 ## Commands
@@ -51,7 +58,7 @@ pre-release with the jars, using `.github/release-notes/<tag>.md` as the notes (
 missing); release immutability is on, so the job drafts, attaches, then publishes. The same job then runs
 `.github/scripts/modrinth.sh`, which uploads one Modrinth version per jar (`<version>+<mc>-<loader>`, beta, game
 versions from the node's `mod.mc_releases`, the release notes as the changelog; Fabric and Quilt require Fabric API and
-FLK, NeoForge requires Kotlin for Forge) to project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret. `DRY_RUN=1`
+FLK, NeoForge and Forge require Kotlin for Forge) to project `SZuvIr1Y`, using the `MODRINTH_TOKEN` repo secret. `DRY_RUN=1`
 prints the payloads instead, for testing against local jars
 
 `.github/workflows/codeql.yml` runs CodeQL on `main`, PRs and weekly: `java-kotlin` (manual `./gradlew :26.2-fabric:classes`
@@ -93,11 +100,13 @@ Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,
 - `neoforge/` (package `xyz.kkaii.steamed.neoforge`): `SteamedNeoForge.kt` (`@Mod` class — its constructor is the earliest hook NeoForge offers, calls
   `SteamInit.initSteam()` there; also listens for `FMLClientSetupEvent` for the same log line Fabric's
   `ClientModInitializer` prints), `NeoForgePlatformHelper.kt`, `neoforge.mods.toml`
+- `forge/` (package `xyz.kkaii.steamed.forge`, 1.20.1 only): `SteamedForge.kt` (`@Mod` class like NeoForge's, mod bus from
+  `FMLJavaModLoadingContext.get()`), `ForgePlatformHelper.kt`, `META-INF/mods.toml`, `pack.mcmeta`
 - `quilt/` (package `xyz.kkaii.steamed.quilt`): mirrors `fabric/` almost exactly (`SteamedQuilt.kt`, `SteamPreLaunchQuilt.kt`, `QuiltPlatformHelper.kt`, and the shared
   `fabric.mod.json` template, with Quilt's entrypoints — Quilt Loader reads that format directly, no `quilt.mod.json` needed) — kept as separate files
   rather than sharing Fabric's, since they're tiny and this avoids new cross-module sharing complexity for two modules
   that could plausibly diverge later
-- Each node compiles only its own loader's package: the other two are excluded in its build script's `sourceSets.main`
+- Each node compiles only its own loader's package: the others are excluded in its build script's `sourceSets.main`
   block. Shared resources are templated per node (see Stack)
 - `settings.gradle.kts` (nodes), `stonecutter.gradle.kts` (active node, tags, constants), `stonecutter.properties.toml`,
   `build.fabric.gradle.kts`/`build.neoforge.gradle.kts`/`build.quilt.gradle.kts`
@@ -142,12 +151,13 @@ Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,
   `steamed` (the host's mod version), `visibility` (`friends`/`private`), and `mc_version`/`mc_protocol` (the
   host's Minecraft; joining is gated on the protocol number), written in `onLobbyCreated`; anything that
   lists lobbies must check `steamed` first. `IPlatformHelper.modVersion()` is the per-loader source of the version
-- Version differences live in two places only: `compat/Compat26.kt` and `compat/Compat1_21_1.kt` (same top-level
-  names, Java facade `Compat`, each wrapped in a whole-file `//? if` condition), and inline `//? if >=26.1 {` blocks in
+- Version differences live in two places only: `compat/Compat26.kt`, `compat/Compat1_21_1.kt` and `compat/Compat1_20_1.kt`
+  (same top-level names, Java facade `Compat`, each wrapped in a whole-file `//? if` condition; a new compat helper
+  goes in all three), and inline `//? if >=26.1 {` blocks in
   mixins. Mixins that exist for one version only are whole-file conditions too (`AvatarRendererMixin` for 26.x;
-  `PlayerRendererMixin`, `PlayerListMixin`, `MinecraftAccessor` for 1.21.1), listed per version in the TOML's
+  `PlayerRendererMixin`, `PlayerListMixin`, `MinecraftAccessor` for 1.21.1 and 1.20.1), listed per version in the TOML's
   `mod.mixins`. The source is written in 26.x names; Stonecutter's `replacements` rewrite `Identifier` to
-  `ResourceLocation` and `net.minecraft.util.Util` to `net.minecraft.Util` for 1.21.1. When editing a 1.21.1 branch,
+  `ResourceLocation` and `net.minecraft.util.Util` to `net.minecraft.Util` for 1.21.1 and 1.20.1. When editing an older branch,
   switch the active node first so it's uncommented, and remember the rewritten names
 - 1.21.1 is obfuscated: Fabric remaps through loom-back-compat (Loom remaps mixin annotations statically, no refmap),
   and there are no local variable names, so `@Local(name = …)` only works on 26.x. Its 8-player cap is the
@@ -163,6 +173,15 @@ Base package `xyz.kkaii.steamed` throughout. One source tree, `src/main/{kotlin,
   Loom's cache (`find ~/.gradle/caches -name '*26.2*sources*.jar'`) (much faster than reconstructing signatures from
   `javap`). Both loaders build against the same official-mapped vanilla Minecraft, so signatures found this way apply to
   both
+- 1.20.1 predates a lot of the GUI the screens use, so `Compat1_20_1.kt` fills in: no GUI sprite atlas (`spriteButton`
+  blits `textures/gui/sprites/*.png` directly), `LinearLayout` distributes over a fixed length instead of spacing (so
+  `flowRow`/`flowColumn` are one-line `GridLayout`s there), selection lists aren't layout elements (`addList`/`fitList`
+  place them by hand), `Screen.render` doesn't draw the background, skins come from `SkinManager.registerSkins` (no
+  `PlayerSkin`), `ResourceLocation(ns, path)` instead of `fromNamespaceAndPath` (use `resourceId`), and system toasts
+  are a fixed enum (`toastId` picks a slot), so new shared code should go through the compat helpers. Its nametag
+  `renderNameTag` has no partial-tick parameter
+- Forge 1.20.1's `runClient` loads classpath libraries in another layer, like NeoForge 21.1, hence the unpacked
+  steamworks4j in its dev runs too
 - `runClient` puts every library on one classpath, so it hides packaging bugs: 0.1.3's NeoForge jar crashed on a real
   install (no Kotlin stdlib, then unbound natives) while `runClient` worked. Check a real Prism instance with the
   built jar before releasing

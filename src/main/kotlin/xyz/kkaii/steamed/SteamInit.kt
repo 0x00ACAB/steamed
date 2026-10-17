@@ -6,7 +6,6 @@ import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
-import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.screens.DisconnectedScreen
 import net.minecraft.client.gui.screens.TitleScreen
 import net.minecraft.network.chat.Component
@@ -34,7 +33,7 @@ object SteamInit {
 
     private var librariesLoaded = false
     private var warnedUnavailable = false
-    private val STEAM_TOAST = SystemToast.SystemToastId(10000L)
+    private val STEAM_TOAST = toastId(10000L)
 
     fun initSteam() {
         createAppid()

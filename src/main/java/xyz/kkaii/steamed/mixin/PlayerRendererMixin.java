@@ -13,7 +13,11 @@ import xyz.kkaii.steamed.SteamPlayers;
 @Mixin(PlayerRenderer.class)
 public class PlayerRendererMixin {
 	@ModifyVariable(
+			//? if >=1.21 {
 			method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V",
+			//?} else {
+			/^method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+			^///?}
 			at = @At("HEAD"),
 			argsOnly = true
 	)

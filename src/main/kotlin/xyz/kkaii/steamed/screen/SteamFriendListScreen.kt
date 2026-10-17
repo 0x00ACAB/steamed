@@ -5,9 +5,7 @@ import com.codedisaster.steamworks.SteamID
 import com.mojang.logging.LogUtils
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
-import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
-import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
@@ -22,11 +20,11 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : SteamedScreen(Com
     private var friendList: FriendSelectionList? = null
 
     override fun init() {
-        this.layout.addTitleHeader(this.title, this.font)
+        this.layout.titleHeader(this.title, this.font)
 
-        this.friendList = this.layout.addToContents(FriendSelectionList(this.mc))
+        this.friendList = addList(this.layout, FriendSelectionList(this.mc))
 
-        val footer: LinearLayout = this.layout.addToFooter(LinearLayout.horizontal().spacing(4))
+        val footer = this.layout.addToFooter(flowRow(4))
         footer.addChild(Button.builder(Component.translatable("steamed.invite_screen.invite"), { _ ->
             val entry = this.friendList?.selected
             if (entry == null || entry.invited) return@builder
@@ -57,14 +55,14 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : SteamedScreen(Com
 
     override fun repositionElements() {
         this.layout.arrangeElements()
-        this.friendList?.updateSize(this.width, this.layout)
+        fitList(this.friendList, this.layout)
     }
 
     override fun onClose() {
         this.mc.closeTo(this.lastScreen)
     }
 
-    private inner class FriendSelectionList(minecraft: Minecraft) : ObjectSelectionList<FriendSelectionList.Entry>(
+    private inner class FriendSelectionList(minecraft: Minecraft) : SelectionList<FriendSelectionList.Entry>(
         minecraft, this@SteamFriendListScreen.width, this@SteamFriendListScreen.height - 33 - 60, 33, 20
     ) {
         init {

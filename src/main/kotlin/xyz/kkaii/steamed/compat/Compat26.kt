@@ -3,18 +3,31 @@
 
 package xyz.kkaii.steamed.compat
 
+import java.net.URI
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractWidget
+import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.ContainerObjectSelectionList
 import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.ImageButton
 import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.gui.components.PlayerFaceExtractor
+import net.minecraft.client.gui.components.WidgetSprites
 import net.minecraft.client.gui.components.toasts.SystemToast
+import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
+import net.minecraft.client.gui.layouts.LayoutElement
+import net.minecraft.client.gui.layouts.LinearLayout
+import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.client.multiplayer.ServerData
+import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.server.IntegratedServer
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
@@ -26,17 +39,34 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.util.ARGB
 import net.minecraft.world.item.component.ResolvableProfile
 import org.lwjgl.glfw.GLFW
-import java.net.URI
-import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 typealias Graphics = GuiGraphicsExtractor
+typealias ToastId = SystemToast.SystemToastId
+fun toastId(displayMs: Long): ToastId = SystemToast.SystemToastId(displayMs)
+
+fun resourceId(namespace: String, path: String): Identifier = Identifier.fromNamespaceAndPath(namespace, path)
+
+fun lanServerData(name: String, ip: String): ServerData = ServerData(name, ip, ServerData.Type.LAN)
+fun connectTo(parent: Screen, mc: Minecraft, address: ServerAddress, data: ServerData) =
+    ConnectScreen.startConnecting(parent, mc, address, data, false, null)
+
+fun spriteButton(x: Int, y: Int, sprite: String, onPress: Button.OnPress, label: Component): Button =
+    ImageButton(x, y, 20, 20, WidgetSprites(resourceId("steamed", sprite), resourceId("steamed", "${sprite}_highlighted")), onPress, label)
+
+typealias FlowLayout = LinearLayout
+fun flowRow(spacing: Int): FlowLayout = LinearLayout.horizontal().spacing(spacing)
+fun flowColumn(spacing: Int): FlowLayout =
+    LinearLayout.vertical().spacing(spacing).also { it.defaultCellSetting().alignHorizontallyCenter() }
+
+fun HeaderAndFooterLayout.titleHeader(title: Component, font: Font) {
+    addTitleHeader(title, font)
+}
 
 fun Minecraft.currentScreen(): Screen? = gui.screen()
 fun Minecraft.show(screen: Screen) = setScreenAndShow(screen)
 fun Minecraft.closeTo(screen: Screen?) = gui.setScreen(screen)
 fun Minecraft.systemMessage(message: Component) = gui.hud.chat.addClientSystemMessage(message)
-fun Minecraft.toast(id: SystemToast.SystemToastId, title: Component, message: Component?) =
+fun Minecraft.toast(id: ToastId, title: Component, message: Component?) =
     SystemToast.addOrUpdate(gui.toastManager(), id, title, message)
 fun Minecraft.disconnectTo(screen: Screen) = disconnect(screen, false)
 fun Minecraft.leaveWorld(reason: Component) = disconnectFromWorld(reason)
@@ -67,6 +97,10 @@ abstract class SteamedScreen(title: Component) : Screen(title) {
     protected open fun draw(graphics: Graphics, mouseX: Int, mouseY: Int, a: Float) {}
     protected open fun onKey(key: Int) {}
 
+    protected fun <T> addList(layout: HeaderAndFooterLayout, list: T): T where T : LayoutElement, T : ListInLayout =
+        layout.addToContents(list)
+    protected fun fitList(list: ListInLayout?, layout: HeaderAndFooterLayout) = list?.fit(this, layout)
+
     override fun extractRenderState(graphics: Graphics, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
         draw(graphics, mouseX, mouseY, a)
@@ -76,6 +110,21 @@ abstract class SteamedScreen(title: Component) : Screen(title) {
         onKey(event.key())
         return super.keyPressed(event)
     }
+}
+
+// The selection lists the screens lay out between a HeaderAndFooterLayout's header and footer.
+interface ListInLayout {
+    fun fit(screen: Screen, layout: HeaderAndFooterLayout)
+}
+
+abstract class ContainerList<E : ContainerObjectSelectionList.Entry<E>>(mc: Minecraft, width: Int, height: Int, y: Int, itemHeight: Int) :
+    ContainerObjectSelectionList<E>(mc, width, height, y, itemHeight), ListInLayout {
+    override fun fit(screen: Screen, layout: HeaderAndFooterLayout) = updateSize(screen.width, layout)
+}
+
+abstract class SelectionList<E : ObjectSelectionList.Entry<E>>(mc: Minecraft, width: Int, height: Int, y: Int, itemHeight: Int) :
+    ObjectSelectionList<E>(mc, width, height, y, itemHeight), ListInLayout {
+    override fun fit(screen: Screen, layout: HeaderAndFooterLayout) = updateSize(screen.width, layout)
 }
 
 abstract class ContainerRow<E : ContainerRow<E>> : ContainerObjectSelectionList.Entry<E>() {

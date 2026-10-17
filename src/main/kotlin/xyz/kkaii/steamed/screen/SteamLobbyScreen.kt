@@ -7,22 +7,18 @@ import com.mojang.logging.LogUtils
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.*
-import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout
-import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.resources.language.I18n
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
 import org.slf4j.Logger
 import xyz.kkaii.steamed.FriendLobbies
 import xyz.kkaii.steamed.SteamInit
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
-import xyz.kkaii.steamed.compat.*
 import xyz.kkaii.steamed.compat.*
 import xyz.kkaii.steamed.platform.Services
 import java.util.*
@@ -48,21 +44,20 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
     }
 
     override fun init() {
-        this.layout.addTitleHeader(this.title, this.font)
+        this.layout.titleHeader(this.title, this.font)
         if (!steamAvailable) {
             initWithoutSteam()
             return
         }
 
         if (this.isInsideLobby) {
-            this.memberList = this.layout.addToContents(MemberList(this.mc))
+            this.memberList = addList(this.layout, MemberList(this.mc))
         } else {
-            this.hostList = this.layout.addToContents(HostList(this.mc))
+            this.hostList = addList(this.layout, HostList(this.mc))
         }
-        val footer: LinearLayout = this.layout.addToFooter(LinearLayout.vertical().spacing(4))
-        footer.defaultCellSetting().alignHorizontallyCenter()
-        val topFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))
-        val bottomFooterButtons: LinearLayout = footer.addChild(LinearLayout.horizontal().spacing(4))
+        val footer = this.layout.addToFooter(flowColumn(4))
+        val topFooterButtons = footer.addChild(flowRow(4))
+        val bottomFooterButtons = footer.addChild(flowRow(4))
 
         if (!this.isInsideLobby) {
             this.createLobby = topFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.create"), { self ->
@@ -127,10 +122,10 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
                 .setMaxWidth(260)
                 .setCentered(true)
         )
-        val footer: LinearLayout = this.layout.addToFooter(LinearLayout.horizontal().spacing(4))
+        val footer = this.layout.addToFooter(flowRow(4))
         val retryLabel = Component.translatable("steamed.steam.retry")
         footer.addChild(
-            ImageButton(0, 0, 20, 20, RETRY_SPRITES, { _ -> retrySteam() }, retryLabel)
+            spriteButton(0, 0, "menu/retry", { _ -> retrySteam() }, retryLabel)
                 .also { it.setTooltip(Tooltip.create(retryLabel)) }
         )
         footer.addChild(Button.builder(CommonComponents.GUI_BACK, { _ -> this.onClose() }).width(150).build())
@@ -179,8 +174,8 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
 
     override fun repositionElements() {
         this.layout.arrangeElements()
-        this.memberList?.updateSize(this.width, this.layout)
-        this.hostList?.updateSize(this.width, this.layout)
+        fitList(this.memberList, this.layout)
+        fitList(this.hostList, this.layout)
     }
 
     override fun onClose() {
@@ -195,7 +190,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
         return false
     }
 
-    private inner class MemberList(minecraft: Minecraft) : ContainerObjectSelectionList<MemberList.Entry>(
+    private inner class MemberList(minecraft: Minecraft) : ContainerList<MemberList.Entry>(
         minecraft, this@SteamLobbyScreen.width, this@SteamLobbyScreen.height - 33 - 60, 33, 36
     ) {
         private var members: List<SteamID> = emptyList()
@@ -286,7 +281,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
     }
 
     // Outside a lobby: a pending invite, then the Steamed lobbies friends are in.
-    private inner class HostList(minecraft: Minecraft) : ContainerObjectSelectionList<HostList.Row>(
+    private inner class HostList(minecraft: Minecraft) : ContainerList<HostList.Row>(
         minecraft, this@SteamLobbyScreen.width, this@SteamLobbyScreen.height - 33 - 60, 33, 36
     ) {
         private var shown: List<Any?> = listOf(Unit)
@@ -423,11 +418,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
     companion object {
         private val LOGGER: Logger = LogUtils.getLogger()
         private val BG_FILL = argb(255, 74, 74, 74)
-        private val RETRY_TOAST = SystemToast.SystemToastId(4000L)
-        private val RETRY_SPRITES = WidgetSprites(
-            Identifier.fromNamespaceAndPath("steamed", "menu/retry"),
-            Identifier.fromNamespaceAndPath("steamed", "menu/retry_highlighted")
-        )
+        private val RETRY_TOAST = toastId(4000L)
         private val STATUS_COLOR = argb(140, 255, 255, 255)
 
         private var lobbyType = SteamMatchmaking.LobbyType.FriendsOnly

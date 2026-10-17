@@ -6,7 +6,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,12 +18,6 @@ import xyz.kkaii.steamed.screen.SteamLobbyScreen;
 
 @Mixin(TitleScreen.class)
 public class TitleScreenMixin extends Screen {
-	@Unique
-	private static final WidgetSprites STEAMED_LOBBY_SPRITES = new WidgetSprites(
-			Identifier.fromNamespaceAndPath("steamed", "menu/lobby"),
-			Identifier.fromNamespaceAndPath("steamed", "menu/lobby_highlighted")
-	);
-
 	protected TitleScreenMixin(Component title) {
 		super(title);
 	}
@@ -53,8 +46,8 @@ public class TitleScreenMixin extends Screen {
 					&& widget.getMessage().getContents() instanceof TranslatableContents contents
 					&& contents.getKey().equals("menu.multiplayer")) {
 				Component label = Component.translatable("steamed.lobby.button");
-				ImageButton button = new ImageButton(
-						widget.getX() + widget.getWidth() + 4, widget.getY(), 20, 20, STEAMED_LOBBY_SPRITES,
+				Button button = Compat.spriteButton(
+						widget.getX() + widget.getWidth() + 4, widget.getY(), "menu/lobby",
 						pressed -> Compat.show(this.minecraft, new SteamLobbyScreen(this)), label
 				);
 				button.setTooltip(Tooltip.create(label));

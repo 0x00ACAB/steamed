@@ -3,7 +3,7 @@
 set -euo pipefail
 jars="$1" toml="$2" changelog="$(cat "$3")"
 fabric_deps='[{"project_id":"P7dR8mSH","dependency_type":"required"},{"project_id":"Ha28R6CL","dependency_type":"required"}]'
-neoforge_deps='[{"project_id":"ordsPcFz","dependency_type":"required"}]'
+kff_deps='[{"project_id":"ordsPcFz","dependency_type":"required"}]'
 
 for path in "$jars"/steamed-*.jar; do
   jar="$(basename "$path")"                 # steamed-fabric-0.2.0+26.2.jar
@@ -12,7 +12,7 @@ for path in "$jars"/steamed-*.jar; do
   version="${rest%%+*}"; mc="${rest#*+}"
   game_versions="$(python3 -c 'import json, sys, tomllib
 print(json.dumps(tomllib.load(open(sys.argv[1], "rb"))[sys.argv[2]]["mod"]["mc_releases"]))' "$toml" "$mc")"
-  deps="$fabric_deps"; [ "$loader" = neoforge ] && deps="$neoforge_deps"
+  deps="$fabric_deps"; [ "$loader" = neoforge ] || [ "$loader" = forge ] && deps="$kff_deps"
   data="$(jq -n --arg v "$version+$mc-$loader" --arg l "$loader" --argjson gv "$game_versions" --arg c "$changelog" \
     --argjson deps "$deps" '{
       project_id: "SZuvIr1Y", name: "Steamed \($v)", version_number: $v, changelog: $c,

@@ -6,11 +6,8 @@ package xyz.kkaii.steamed
 import com.codedisaster.steamworks.*
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.components.toasts.SystemToast
-import net.minecraft.client.gui.screens.ConnectScreen
 import net.minecraft.client.gui.screens.DisconnectedScreen
 import net.minecraft.client.gui.screens.TitleScreen
-import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.multiplayer.resolver.ServerAddress
 import net.minecraft.client.resources.language.I18n
 import net.minecraft.client.server.IntegratedServer
@@ -119,7 +116,7 @@ object Steamed {
     @Volatile
     var pendingInvite: Invite? = null
 
-    private val INVITE_TOAST = SystemToast.SystemToastId(10000L)
+    private val INVITE_TOAST = toastId(10000L)
 
     fun onLobbyInvite(lobby: SteamID, inviter: SteamID) {
         if (lobbyId.isSome() && lobbyId.unwrap() == lobby) return
@@ -420,12 +417,12 @@ object Steamed {
         val instance: Minecraft = Minecraft.getInstance()
         instance.execute {
             val address = ServerAddress("127.0.0.1", localPort)
-            val serverData = ServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort", ServerData.Type.LAN)
+            val serverData = lanServerData(LOBBY_SERVER_NAME, "127.0.0.1:$localPort")
             val current = instance.currentScreen()
             val parent =
                 (if (current is SteamConnectingScreen) current.lastScreen else current) ?: SteamLobbyScreen(null)
             lobbyWorldStarted = true
-            ConnectScreen.startConnecting(parent, instance, address, serverData, false, null)
+            connectTo(parent, instance, address, serverData)
             (instance.currentScreen() as? ConnectScreenAccessor)
                 ?.`steamed$updateStatus`(Component.translatable("steamed.join.establishing", hostName))
         }
