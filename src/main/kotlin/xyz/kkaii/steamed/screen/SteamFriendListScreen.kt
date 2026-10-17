@@ -103,7 +103,8 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : SteamedScreen(Com
 
             override fun draw(graphics: Graphics, x: Int, y: Int, width: Int, height: Int, mouseX: Int, mouseY: Int, a: Float) {
                 val font = this@SteamFriendListScreen.font
-                val label = if (invited) "$name (invited)" else "$name - $state"
+                val label = if (invited) Component.translatable("steamed.invite_screen.invited", name)
+                else Component.translatable("steamed.invite_screen.friend", name, Component.translatable("steamed.persona.${state.name.lowercase()}"))
                 val face = uuid
                 val total = font.width(label) + if (face != null) 10 else 0
                 var left = this@FriendSelectionList.width / 2 - total / 2

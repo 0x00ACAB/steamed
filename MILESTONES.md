@@ -614,6 +614,8 @@ not, members fall back to the old timeout), and friends-list "Join Game".
       icon, lobby screen with your face, `/list` showing the lobby's max players, the invite screen, and "Open to LAN"
       after leaving a lobby. Blocked on a second Steam account: joining, auth, kick, voice, web maps, the nametag
       marker seen from another client, and the version-gate greying in a friend's list
+    - [x] 1.20.1 (Fabric, Forge 47.x), shipping in 0.2.1. Verified 2026-10-17: both dev clients initialise Steam with no
+      mixin errors, and both jars work in-game like the NeoForge build. Same two-account gaps as 1.21.1
     - [ ] 1.16.5: normal forge, since NeoForge doesn't support it
 - [x] `:quilt:runClient` works (2026-10-17): the signer clash came from FLK's transitive `fabric-loader`, not
   quilt-loader's. Loaded Steamed with Steam running, title-screen lobby icon renders
