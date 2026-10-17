@@ -23,7 +23,11 @@ public class PauseMenuMixin extends Screen {
 			method = "createPauseMenu",
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/layouts/GridLayout;arrangeElements()V", shift = At.Shift.BEFORE)
 	)
+	//? if >=26.1 {
 	private void createPauseMenu(CallbackInfo ci, @Local(name = "helper") GridLayout.RowHelper helper) {
+	//?} else {
+	/*private void createPauseMenu(CallbackInfo ci, @Local GridLayout.RowHelper helper) {
+	*///?}
 		Button lobbyButton = Button.builder(Component.translatable("steamed.lobby.button"), pressed ->
 				Compat.show(this.minecraft, new SteamLobbyScreen(Compat.currentScreen(this.minecraft)))
 		).width(204).build();

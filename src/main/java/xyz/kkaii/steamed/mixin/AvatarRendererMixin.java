@@ -1,3 +1,4 @@
+//? if >=26.1 {
 package xyz.kkaii.steamed.mixin;
 
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
@@ -19,3 +20,4 @@ public class AvatarRendererMixin {
 		if (state.nameTag != null) state.nameTag = SteamPlayers.decorate(entity.getUUID(), state.nameTag);
 	}
 }
+//?}

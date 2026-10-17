@@ -13,6 +13,10 @@ import xyz.kkaii.steamed.SteamPlayers;
 public class PlayerTabOverlayMixin {
 	@Inject(method = "getNameForDisplay", at = @At("RETURN"), cancellable = true)
 	private void markSteamPlayer(PlayerInfo info, CallbackInfoReturnable<Component> cir) {
+		//? if >=26.1 {
 		cir.setReturnValue(SteamPlayers.decorate(info.getProfile().id(), cir.getReturnValue()));
+		//?} else {
+		/*cir.setReturnValue(SteamPlayers.decorate(info.getProfile().getId(), cir.getReturnValue()));
+		*///?}
 	}
 }

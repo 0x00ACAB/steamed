@@ -5,6 +5,7 @@ import net.minecraft.client.resources.SplashManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,14 +19,24 @@ import java.util.List;
 
 @Mixin(SplashManager.class)
 public class SplashManagerMixin {
+	//? if >=26.1 {
 	@Shadow
 	private List<Component> splashes;
+	//?} else {
+	/*@Shadow
+	@Final
+	private List<String> splashes;
+	*///?}
 
 	@Inject(method = "apply(Ljava/util/List;Lnet/minecraft/server/packs/resources/ResourceManager;Lnet/minecraft/util/profiling/ProfilerFiller;)V", at = @At("TAIL"))
-	private void steamed$addSplashes(List<Component> preparations, ResourceManager manager, ProfilerFiller profiler, CallbackInfo ci) {
+	private void steamed$addSplashes(List<?> preparations, ResourceManager manager, ProfilerFiller profiler, CallbackInfo ci) {
+		//? if >=26.1 {
 		List<Component> all = new ArrayList<>(this.splashes);
 		all.addAll(Splashes.extraSplashes());
 		this.splashes = List.copyOf(all);
+		//?} else {
+		/*for (Component splash : Splashes.extraSplashes()) this.splashes.add(splash.getString());
+		*///?}
 	}
 
 	@Inject(method = "getSplash", at = @At("RETURN"), cancellable = true)
@@ -35,6 +46,10 @@ public class SplashManagerMixin {
 		if (vanilla == null || vanilla == SplashRenderer.CHRISTMAS || vanilla == SplashRenderer.NEW_YEAR || vanilla == SplashRenderer.HALLOWEEN)
 			return;
 		Component personal = Splashes.personalSplash();
+		//? if >=26.1 {
 		if (personal != null) cir.setReturnValue(new SplashRenderer(personal));
+		//?} else {
+		/*if (personal != null) cir.setReturnValue(new SplashRenderer(personal.getString()));
+		*///?}
 	}
 }
