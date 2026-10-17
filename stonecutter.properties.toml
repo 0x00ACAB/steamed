@@ -34,6 +34,7 @@ meta.minecraft_fabric = "~26.2"
 meta.minecraft_neoforge = "[26.2,26.3)"
 meta.neo = "[26.2,)"
 meta.kff = "[6.4,)"
+deps.kff = "6.4.0"
 
 ["1.21.1"]
 mod.java = "21"
@@ -47,3 +48,4 @@ meta.minecraft_fabric = ">=1.21 <=1.21.1"
 meta.minecraft_neoforge = "[1.21,1.21.2)"
 meta.neo = "[21.1,)"
 meta.kff = "[5.12,)"
+deps.kff = "5.12.0"

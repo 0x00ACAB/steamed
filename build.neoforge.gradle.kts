@@ -24,6 +24,10 @@ kotlin.jvmToolchain(javaVersion)
 
 repositories {
     maven("https://jitpack.io")
+    exclusiveContent {
+        forRepository { maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "Kotlin for Forge" } }
+        filter { includeGroup("thedarkcolour") }
+    }
 }
 
 neoForge {
@@ -43,11 +47,15 @@ neoForge {
     }
 }
 
-val steamworksJar: Configuration by configurations.creating
+val steamworksJar: Configuration = configurations.create("steamworksJar")
+// Dev runs only: the jar declares KFF as a dependency, which NeoForge enforces even in runClient.
+val devRuntime: Configuration = configurations.create("devRuntime")
+configurations.runtimeClasspath { extendsFrom(devRuntime) }
 
 dependencies {
     implementation(steamworks)
     steamworksJar(steamworks) { isTransitive = false }
+    devRuntime("thedarkcolour:kotlinforforge-neoforge:${prop("deps.kff")}")
 
     testImplementation(kotlin("test"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -57,6 +65,17 @@ dependencies {
 // SteamNatives has to share SteamAPI's loader for JNI to bind.
 tasks.jar {
     from(steamworksJar.elements.map { jars -> jars.map { zipTree(it) } }) { exclude("META-INF/**") }
+}
+
+// 1.21.1 dev runs load classpath libraries in a different layer from the mod, so JNI can't bind SteamAPI's natives
+// (the same reason the jar packs steamworks4j in). Unpack it next to the mod's classes for runClient only.
+if (sc.current.parsed < "26.1") {
+    val unpackSteamworks = tasks.register<Sync>("unpackSteamworks") {
+        from(steamworksJar.elements.map { jars -> jars.map { zipTree(it) } }) { exclude("META-INF/**") }
+        into(layout.buildDirectory.dir("steamworks-dev"))
+    }
+    sourceSets.main { output.dir(mapOf("builtBy" to unpackSteamworks), layout.buildDirectory.dir("steamworks-dev")) }
+    tasks.jar { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
 }
 
 tasks.test {
