@@ -76,5 +76,8 @@
   "steamed.auth.left_lobby": "Left the lobby",
   "steamed.auth.kicked": "You were kicked from this lobby",
   "steamed.auth.not_member": "You're not in the host's lobby",
-  "steamed.auth.not_hosting": "The host isn't hosting a world"
+  "steamed.auth.not_hosting": "The host isn't hosting a world",
+  "steamed.join.wrong_minecraft": "The host is on Minecraft %s and you're on %s, so you can't join their world",
+  "steamed.lobby.minecraft_mismatch": "They're on Minecraft %s, you're on %s. Everyone needs the same version",
+  "steamed.lobby.minecraft": "Minecraft %s"
 }

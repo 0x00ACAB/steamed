@@ -129,7 +129,8 @@ Base package `xyz.kkaii.steamed` throughout. Four modules:
 ## Gotchas
 
 - Uses Spacewar (app ID 480), so lobbies are shared with every other 480 user. Steamed lobbies carry lobby data
-  `steamed` (the host's mod version) and `visibility` (`friends`/`private`), written in `onLobbyCreated`; anything that
+  `steamed` (the host's mod version), `visibility` (`friends`/`private`), and `mc_version`/`mc_protocol` (the
+  host's Minecraft; joining is gated on the protocol number), written in `onLobbyCreated`; anything that
   lists lobbies must check `steamed` first. `IPlatformHelper.modVersion()` is the per-loader source of the version
 - Minecraft 26.x renames things often and moves ownership between classes (for example `GuiGraphicsExtractor`/
   `extractRenderState`; `Minecraft.screen` is gone — current screen is `Minecraft.gui.screen()`, set with

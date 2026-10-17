@@ -3,6 +3,7 @@ package xyz.kkaii.steamed
 import com.codedisaster.steamworks.*
 import com.codedisaster.steamworks.SteamAPI.InitResult
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
+import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.User
 import net.minecraft.client.input.KeyEvent
@@ -262,12 +263,14 @@ object SteamInit {
             instance.execute {
                 val user: User = instance.user
                 kv(steamId, "name", instance.singleplayerServer?.worldData?.levelName ?: "${user.name}'s world")
-                kv(steamId, "max_players", "20")
+                kv(steamId, "max_players", matchmaking?.getLobbyMemberLimit(steamId).toString())
                 kv(steamId, "owner", user.name)
                 kv(steamId, "owner_uuid", user.profileId.toString())
                 // Marks the lobby as Steamed's among every other Spacewar (480) lobby, for FriendLobbies.
                 kv(steamId, FriendLobbies.MARKER_KEY, Services.PLATFORM.modVersion())
                 kv(steamId, FriendLobbies.VISIBILITY_KEY, FriendLobbies.visibilityOf(Steamed.creatingLobbyType))
+                kv(steamId, FriendLobbies.MC_VERSION_KEY, SharedConstants.getCurrentVersion().name())
+                kv(steamId, FriendLobbies.MC_PROTOCOL_KEY, SharedConstants.getProtocolVersion().toString())
 
                 instance.window.setTitle(
                     GLFW.glfwGetWindowTitle(instance.window.handle()) + " in a steam lobby"

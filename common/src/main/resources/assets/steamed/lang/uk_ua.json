@@ -76,5 +76,8 @@
   "steamed.auth.left_lobby": "Ви вийшли з лобі",
   "steamed.auth.kicked": "Вас викинуто з цього лобі",
   "steamed.auth.not_member": "Ви не в лобі хоста",
-  "steamed.auth.not_hosting": "Хост не хостить світ"
+  "steamed.auth.not_hosting": "Хост не хостить світ",
+  "steamed.join.wrong_minecraft": "У хоста Minecraft %s, а у вас %s, тому ви не можете приєднатися до його світу",
+  "steamed.lobby.minecraft_mismatch": "У цього гравця Minecraft %s, а у вас %s. Усім потрібна однакова версія",
+  "steamed.lobby.minecraft": "Minecraft %s"
 }

@@ -5,6 +5,7 @@ package xyz.kkaii.steamed
 
 import com.codedisaster.steamworks.*
 import net.minecraft.ChatFormatting
+import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.client.gui.screens.ConnectScreen
@@ -484,6 +485,21 @@ object Steamed {
         if (outServer == user?.steamID) {
             Minecraft.getInstance().execute {
                 Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(Component.translatable("steamed.join.you_are_host"))
+            }
+            return
+        }
+
+        // Invites skip the lobby list's check, so catch a different Minecraft here, before the auth handshake.
+        val lobby = lobbyId.unwrap()
+        if (!FriendLobbies.sameMinecraft(matchmaking?.getLobbyData(lobby, FriendLobbies.MC_PROTOCOL_KEY))) {
+            val hostVersion = matchmaking?.getLobbyData(lobby, FriendLobbies.MC_VERSION_KEY).orEmpty()
+            LOGGER.warn("Host is on Minecraft {}, not joining", hostVersion)
+            Minecraft.getInstance().execute {
+                Minecraft.getInstance().gui.hud.chat.addClientSystemMessage(
+                    Component.translatable(
+                        "steamed.join.wrong_minecraft", hostVersion, SharedConstants.getCurrentVersion().name()
+                    ).withStyle(ChatFormatting.RED)
+                )
             }
             return
         }

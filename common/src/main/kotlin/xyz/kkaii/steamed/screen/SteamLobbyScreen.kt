@@ -5,6 +5,7 @@ import com.codedisaster.steamworks.SteamMatchmaking
 import com.mojang.blaze3d.platform.InputConstants.KEY_F5
 import com.mojang.logging.LogUtils
 import net.minecraft.ChatFormatting
+import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.*
@@ -363,7 +364,12 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                 }.also {
                     if (!hosted.compatible) {
                         it.active = false
-                        it.setTooltip(Tooltip.create(Component.translatable("steamed.lobby.version_mismatch", hosted.version, Services.PLATFORM.modVersion())))
+                        it.setTooltip(Tooltip.create(
+                            if (!hosted.sameMinecraft) Component.translatable(
+                                "steamed.lobby.minecraft_mismatch", hosted.mcVersion, SharedConstants.getCurrentVersion().name()
+                            )
+                            else Component.translatable("steamed.lobby.version_mismatch", hosted.version, Services.PLATFORM.modVersion())
+                        ))
                     }
                 },
             )
@@ -378,6 +384,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : Screen(Component.translatable(
                 val names = hosted.friends.joinToString(", ") { it.second }
                 val world = hosted.world.ifEmpty { I18n.get("steamed.lobby.a_world") }
                 val subtitle = if (hosted.compatible) Component.translatable("steamed.lobby.playing", world)
+                else if (!hosted.sameMinecraft) Component.translatable("steamed.lobby.minecraft", hosted.mcVersion).withStyle(ChatFormatting.RED)
                 else Component.translatable("steamed.lobby.version", hosted.version).withStyle(ChatFormatting.RED)
                 drawRow(
                     graphics,

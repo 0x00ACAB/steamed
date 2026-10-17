@@ -76,5 +76,8 @@
   "steamed.auth.left_lobby": "Opuszczono lobby",
   "steamed.auth.kicked": "Wyrzucono cię z tego lobby",
   "steamed.auth.not_member": "Nie jesteś w lobby gospodarza",
-  "steamed.auth.not_hosting": "Gospodarz nie udostępnia świata"
+  "steamed.auth.not_hosting": "Gospodarz nie udostępnia świata",
+  "steamed.join.wrong_minecraft": "Gospodarz ma Minecraft %s, a ty %s, więc nie możesz dołączyć do jego świata",
+  "steamed.lobby.minecraft_mismatch": "Ten gracz ma Minecraft %s, a ty %s. Wszyscy muszą mieć tę samą wersję",
+  "steamed.lobby.minecraft": "Minecraft %s"
 }

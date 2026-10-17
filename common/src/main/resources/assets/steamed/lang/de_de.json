@@ -76,5 +76,8 @@
   "steamed.auth.left_lobby": "Lobby verlassen",
   "steamed.auth.kicked": "Du wurdest aus dieser Lobby hinausgeworfen",
   "steamed.auth.not_member": "Du bist nicht in der Lobby des Hosts",
-  "steamed.auth.not_hosting": "Der Host hostet keine Welt"
+  "steamed.auth.not_hosting": "Der Host hostet keine Welt",
+  "steamed.join.wrong_minecraft": "Der Host spielt Minecraft %s und du %s, deshalb kannst du seiner Welt nicht beitreten",
+  "steamed.lobby.minecraft_mismatch": "Dort läuft Minecraft %s, bei dir %s. Alle brauchen dieselbe Version",
+  "steamed.lobby.minecraft": "Minecraft %s"
 }

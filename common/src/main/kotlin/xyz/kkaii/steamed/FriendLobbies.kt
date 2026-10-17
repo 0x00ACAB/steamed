@@ -4,6 +4,7 @@ import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamID
 import com.codedisaster.steamworks.SteamMatchmaking
 import com.codedisaster.steamworks.SteamNativeHandle
+import net.minecraft.SharedConstants
 import xyz.kkaii.steamed.platform.Services
 import java.util.concurrent.ConcurrentHashMap
 
@@ -12,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap
 object FriendLobbies {
     const val MARKER_KEY = "steamed"
     const val VISIBILITY_KEY = "visibility"
+    const val MC_VERSION_KEY = "mc_version"
+    const val MC_PROTOCOL_KEY = "mc_protocol"
     private const val APP_ID = 480L
     private const val REQUEST_INTERVAL_MS = 10_000L
 
@@ -19,10 +22,17 @@ object FriendLobbies {
         val lobby: SteamID,
         val friends: List<Pair<SteamID, String>>,
         val world: String,
-        val version: String
+        val version: String,
+        val mcVersion: String,
+        val mcProtocol: String,
     ) {
-        val compatible: Boolean get() = version == Services.PLATFORM.modVersion()
+        val sameMinecraft: Boolean get() = sameMinecraft(mcProtocol)
+        val compatible: Boolean get() = version == Services.PLATFORM.modVersion() && sameMinecraft
     }
+
+    // Lobbies from before these keys existed don't say; Minecraft's own handshake still catches a mismatch.
+    fun sameMinecraft(hostProtocol: String?): Boolean =
+        hostProtocol.isNullOrEmpty() || hostProtocol == SharedConstants.getProtocolVersion().toString()
 
     private val lastRequest = ConcurrentHashMap<Long, Long>()
 
@@ -60,7 +70,11 @@ object FriendLobbies {
                     VISIBILITY_KEY
                 ) == "private"
             ) return@mapNotNull null
-            Hosted(lobby, members, matchmaking.getLobbyData(lobby, "name").orEmpty(), version)
+            Hosted(
+                lobby, members, matchmaking.getLobbyData(lobby, "name").orEmpty(), version,
+                matchmaking.getLobbyData(lobby, MC_VERSION_KEY).orEmpty(),
+                matchmaking.getLobbyData(lobby, MC_PROTOCOL_KEY).orEmpty(),
+            )
         }
     }
 }

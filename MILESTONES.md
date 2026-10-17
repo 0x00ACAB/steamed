@@ -570,6 +570,13 @@ not, members fall back to the old timeout), and friends-list "Join Game".
 
 ### M10 followups
 
+- [x] Lobbies carry the host's Minecraft version and protocol (`mc_version`/`mc_protocol`, 2026-10-17). The lobby list
+  greys out a different protocol, and `joinHostedLobby` refuses one before the auth handshake (invites skip the list).
+  Needed once backports exist: Steamed's own version alone would let a 26.2 and a 1.21 player try to connect
+- [ ] ViaFabric support: with it installed, a different `mc_protocol` shouldn't block joining. Its `auto` mode pings the
+  server first to learn the protocol, which would use up the joiner's single-accept loopback bridge, so Steamed should
+  hand ViaFabric the lobby's `mc_protocol` for that connection instead
+
 - [ ] Actually host/join a lobby on the NeoForge build specifically, not just verify Steam init + mixins load
 - [x] Re-ran `:neoforge:runClient` (2026-10-16) with Steam running: NeoForge loaded the templated `neoforge.mods.toml`,
   `SteamAPI` initialised from the `@Mod` constructor, the poller started, and the title screen came up with no Steamed
