@@ -47,10 +47,10 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
 
       # In-process Kotlin compilation so the extractor sees kotlinc, rather than a Kotlin daemon started elsewhere.
-      # That puts the compile in Gradle's own heap, so only single nodes (26.2-fabric) are compiled.
+      # That puts the compile in Gradle's own heap, so only single nodes (26.2-fabric, 1.21.1-fabric) are compiled.
       - if: matrix.build-mode == 'manual'
         run: >-
-          ./gradlew :26.2-fabric:classes --no-daemon --max-workers=2
+          ./gradlew :26.2-fabric:classes :1.21.1-fabric:classes --no-daemon --max-workers=2
           -Dorg.gradle.jvmargs=-Xmx6g
           -Pkotlin.compiler.execution.strategy=in-process
 
