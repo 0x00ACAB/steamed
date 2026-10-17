@@ -7,9 +7,7 @@ import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.util.Util
 import xyz.kkaii.steamed.Steamed
-import xyz.kkaii.steamed.compat.Graphics
-import xyz.kkaii.steamed.compat.SteamedScreen
-import xyz.kkaii.steamed.compat.closeTo
+import xyz.kkaii.steamed.compat.*
 
 // Shown while the Steam auth handshake runs, before Minecraft's own ConnectScreen takes over.
 class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: String) :
@@ -49,7 +47,7 @@ class SteamConnectingScreen(val lastScreen: Screen?, private val hostName: Strin
         if (failure == null) Steamed.leaveLobby()
         // The lobby screen caches whether we're in a lobby, so rebuild it.
         val target = (lastScreen as? SteamLobbyScreen)?.let { SteamLobbyScreen(it.lastScreen) } ?: lastScreen
-        this.minecraft.closeTo(target)
+        this.mc.closeTo(target)
     }
 
     override fun shouldCloseOnEsc(): Boolean = true

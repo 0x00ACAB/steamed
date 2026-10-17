@@ -23,6 +23,7 @@ import xyz.kkaii.steamed.SteamInit
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
 import xyz.kkaii.steamed.compat.*
+import xyz.kkaii.steamed.compat.*
 import xyz.kkaii.steamed.platform.Services
 import java.util.*
 
@@ -54,9 +55,9 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
         }
 
         if (this.isInsideLobby) {
-            this.memberList = this.layout.addToContents(MemberList(this.minecraft))
+            this.memberList = this.layout.addToContents(MemberList(this.mc))
         } else {
-            this.hostList = this.layout.addToContents(HostList(this.minecraft))
+            this.hostList = this.layout.addToContents(HostList(this.mc))
         }
         val footer: LinearLayout = this.layout.addToFooter(LinearLayout.vertical().spacing(4))
         footer.defaultCellSetting().alignHorizontallyCenter()
@@ -92,7 +93,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
                     }
             )
 
-            if (!this.minecraft.hasSingleplayerServer()) {
+            if (!this.mc.hasSingleplayerServer()) {
                 disableButtons(Component.translatable("steamed.lobby.need_world"), this.createLobby)
             }
         } else {
@@ -107,7 +108,7 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
             )
 
             this.inviteButton = bottomFooterButtons.addChild(Button.builder(Component.translatable("steamed.lobby.invite"), { `_` ->
-                this.minecraft.show(SteamFriendListScreen(this))
+                this.mc.show(SteamFriendListScreen(this))
             }).width(113).build())
             if (!this.isOwner) disableButtons(Component.translatable("steamed.lobby.not_owner"), this.inviteButton)
         }
@@ -140,22 +141,22 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
     private fun retrySteam() {
         val connected = SteamInit.connect()
         val friends = Steamed.friends
-        this.minecraft.toast(
+        this.mc.toast(
             RETRY_TOAST,
             Component.translatable(if (connected) "steamed.steam.retry.connected" else "steamed.steam.retry.failed"),
             if (connected && friends != null) Component.translatable("steamed.title.logged_in", friends.personaName)
             else Component.translatable("steamed.steam.retry.failed.hint")
         )
-        if (connected) this.minecraft.show(SteamLobbyScreen(this.lastScreen))
+        if (connected) this.mc.show(SteamLobbyScreen(this.lastScreen))
     }
 
     private fun leaveLobby() {
         val connectedToHost = Steamed.isConnectedToLobbyHost()
         Steamed.leaveLobby()
         if (connectedToHost) {
-            this.minecraft.leaveWorld(Component.translatable("steamed.lobby.left"))
+            this.mc.leaveWorld(Component.translatable("steamed.lobby.left"))
         } else {
-            this.minecraft.show(SteamLobbyScreen(this.lastScreen))
+            this.mc.show(SteamLobbyScreen(this.lastScreen))
         }
     }
 
@@ -183,11 +184,11 @@ class SteamLobbyScreen(val lastScreen: Screen?) : SteamedScreen(Component.transl
     }
 
     override fun onClose() {
-        this.minecraft.closeTo(this.lastScreen)
+        this.mc.closeTo(this.lastScreen)
     }
 
     override fun onKey(key: Int) {
-        if (key == KEY_F5) this.screenExecutor.execute { this.minecraft.show(SteamLobbyScreen(this.lastScreen)) }
+        if (key == KEY_F5) this.screenExecutor.execute { this.mc.show(SteamLobbyScreen(this.lastScreen)) }
     }
 
     override fun canInterruptWithAnotherScreen(): Boolean {

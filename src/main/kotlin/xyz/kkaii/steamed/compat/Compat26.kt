@@ -62,6 +62,8 @@ fun publishForSteam(server: IntegratedServer, port: Int): Boolean =
 fun <T : Any> cycleButton(name: (T) -> Component, initial: T): CycleButton.Builder<T> = CycleButton.builder(name, initial)
 
 abstract class SteamedScreen(title: Component) : Screen(title) {
+    protected val mc: Minecraft get() = minecraft
+
     protected open fun draw(graphics: Graphics, mouseX: Int, mouseY: Int, a: Float) {}
     protected open fun onKey(key: Int) {}
 

@@ -14,20 +14,17 @@ import net.minecraft.network.chat.Component
 import org.slf4j.Logger
 import xyz.kkaii.steamed.SteamPlayers
 import xyz.kkaii.steamed.Steamed
-import xyz.kkaii.steamed.compat.Graphics
-import xyz.kkaii.steamed.compat.SelectionRow
-import xyz.kkaii.steamed.compat.closeTo
-import xyz.kkaii.steamed.compat.face
+import xyz.kkaii.steamed.compat.*
 import java.util.UUID
 
-class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.translatable("steamed.invite_screen.title")) {
+class SteamFriendListScreen(private val lastScreen: Screen?) : SteamedScreen(Component.translatable("steamed.invite_screen.title")) {
     private val layout: HeaderAndFooterLayout = HeaderAndFooterLayout(this, 33, 60)
     private var friendList: FriendSelectionList? = null
 
     override fun init() {
         this.layout.addTitleHeader(this.title, this.font)
 
-        this.friendList = this.layout.addToContents(FriendSelectionList(this.minecraft))
+        this.friendList = this.layout.addToContents(FriendSelectionList(this.mc))
 
         val footer: LinearLayout = this.layout.addToFooter(LinearLayout.horizontal().spacing(4))
         footer.addChild(Button.builder(Component.translatable("steamed.invite_screen.invite"), { _ ->
@@ -64,7 +61,7 @@ class SteamFriendListScreen(private val lastScreen: Screen?) : Screen(Component.
     }
 
     override fun onClose() {
-        this.minecraft.closeTo(this.lastScreen)
+        this.mc.closeTo(this.lastScreen)
     }
 
     private inner class FriendSelectionList(minecraft: Minecraft) : ObjectSelectionList<FriendSelectionList.Entry>(
